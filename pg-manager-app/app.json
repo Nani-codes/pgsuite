@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "pg-manager-app",
-    "slug": "pg-manager-app",
+    "name": "pg-manager-app-new",
+    "slug": "pg-manager-app-new",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",

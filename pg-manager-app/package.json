@@ -1,5 +1,5 @@
 {
-  "name": "pg-manager-app",
+  "name": "pg-manager-app-new",
   "version": "1.0.0",
   "main": "index.ts",
   "scripts": {
@@ -9,13 +9,10 @@
     "web": "expo start --web"
   },
   "dependencies": {
-    "@expo/metro-runtime": "~55.0.6",
-    "@expo/vector-icons": "^15.0.2",
     "@react-navigation/bottom-tabs": "^7.15.5",
     "@react-navigation/native": "^7.1.33",
     "@react-navigation/native-stack": "^7.14.4",
     "expo": "~55.0.5",
-    "expo-linear-gradient": "~55.0.8",
     "expo-status-bar": "~55.0.4",
     "react": "19.2.0",
     "react-dom": "19.2.0",

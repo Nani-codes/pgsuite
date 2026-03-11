@@ -1,9 +1,10 @@
 import { Platform } from 'react-native';
 
-const BASE_URL = Platform.select({
-  web: 'http://localhost:3000/v1',
-  default: 'http://10.0.2.2:3000/v1',
-})!;
+const API_URL =
+  process.env.EXPO_PUBLIC_API_URL ||
+  (Platform.OS === 'web' ? 'http://localhost:3000' : 'http://192.168.1.5:3000');
+
+const BASE_URL = `${API_URL}/v1`;
 
 interface ApiOptions {
   method?: string;

@@ -1,0 +1,421 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Enums ──────────────────────────────────────────────────────────
+
+enum Plan {
+  free
+  basic
+  pro
+}
+
+enum RoomType {
+  single
+  double
+  triple
+}
+
+enum BedStatus {
+  vacant
+  occupied
+  reserved
+}
+
+enum TenantStatus {
+  active
+  checked_out
+  suspended
+}
+
+enum DocType {
+  aadhaar
+  pan
+  passport
+  driving_licence
+  other
+}
+
+enum DepositStatus {
+  pending
+  paid
+  refunded
+}
+
+enum LeaseStatus {
+  active
+  terminated
+  expired
+}
+
+enum InvoiceStatus {
+  draft
+  sent
+  paid
+  partially_paid
+  overdue
+  waived
+}
+
+enum PaymentMethod {
+  upi
+  card
+  cash
+  bank_transfer
+  other
+}
+
+enum PaymentStatus {
+  pending
+  success
+  failed
+  refunded
+}
+
+enum ComplaintCategory {
+  plumbing
+  electrical
+  wifi
+  cleaning
+  furniture
+  security
+  other
+}
+
+enum ComplaintStatus {
+  open
+  in_progress
+  resolved
+  closed
+}
+
+enum UpdatedBy {
+  owner
+  tenant
+}
+
+enum NotificationType {
+  rent_due
+  payment_success
+  complaint_update
+  notice
+  otp
+}
+
+enum NotificationChannel {
+  push
+  whatsapp
+  sms
+}
+
+enum NotificationStatus {
+  sent
+  delivered
+  failed
+}
+
+// ─── 1. Owners ──────────────────────────────────────────────────────
+
+model Owner {
+  id        String    @id @default(uuid()) @db.Uuid
+  name      String    @db.VarChar(255)
+  phone     String    @unique @db.VarChar(20)
+  email     String?   @db.VarChar(255)
+  plan      Plan      @default(free)
+  isActive  Boolean   @default(true) @map("is_active")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  properties Property[]
+  tenants    Tenant[]
+  notices    Notice[]
+
+  @@map("owners")
+}
+
+// ─── 2. Properties ──────────────────────────────────────────────────
+
+model Property {
+  id        String    @id @default(uuid()) @db.Uuid
+  ownerId   String    @map("owner_id") @db.Uuid
+  name      String    @db.VarChar(255)
+  address   String
+  city      String    @db.VarChar(100)
+  totalBeds Int       @default(0) @map("total_beds")
+  amenities Json?     @default("[]") @db.JsonB
+  isActive  Boolean   @default(true) @map("is_active")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  owner      Owner       @relation(fields: [ownerId], references: [id])
+  floors     Floor[]
+  rooms      Room[]
+  leases     Lease[]
+  invoices   Invoice[]
+  complaints Complaint[]
+  notices    Notice[]
+
+  @@map("properties")
+}
+
+// ─── 3. Floors ──────────────────────────────────────────────────────
+
+model Floor {
+  id         String   @id @default(uuid()) @db.Uuid
+  propertyId String   @map("property_id") @db.Uuid
+  label      String   @db.VarChar(100)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  property Property @relation(fields: [propertyId], references: [id])
+  rooms    Room[]
+
+  @@map("floors")
+}
+
+// ─── 4. Rooms ───────────────────────────────────────────────────────
+
+model Room {
+  id         String   @id @default(uuid()) @db.Uuid
+  propertyId String   @map("property_id") @db.Uuid
+  floorId    String?  @map("floor_id") @db.Uuid
+  roomNumber String   @map("room_number") @db.VarChar(20)
+  roomType   RoomType @map("room_type")
+  rentAmount Decimal  @map("rent_amount") @db.Decimal(10, 2)
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  property Property @relation(fields: [propertyId], references: [id])
+  floor    Floor?   @relation(fields: [floorId], references: [id])
+  beds     Bed[]
+
+  @@map("rooms")
+}
+
+// ─── 5. Beds ────────────────────────────────────────────────────────
+
+model Bed {
+  id        String    @id @default(uuid()) @db.Uuid
+  roomId    String    @map("room_id") @db.Uuid
+  label     String    @db.VarChar(50)
+  status    BedStatus @default(vacant)
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  room   Room    @relation(fields: [roomId], references: [id])
+  leases Lease[]
+
+  @@index([status])
+  @@map("beds")
+}
+
+// ─── 6. Tenants ─────────────────────────────────────────────────────
+
+model Tenant {
+  id                    String       @id @default(uuid()) @db.Uuid
+  ownerId               String       @map("owner_id") @db.Uuid
+  name                  String       @db.VarChar(255)
+  phone                 String       @db.VarChar(20)
+  email                 String?      @db.VarChar(255)
+  emergencyContactName  String?      @map("emergency_contact_name") @db.VarChar(255)
+  emergencyContactPhone String?      @map("emergency_contact_phone") @db.VarChar(20)
+  profilePhotoUrl       String?      @map("profile_photo_url")
+  status                TenantStatus @default(active)
+  createdAt             DateTime     @default(now()) @map("created_at")
+  updatedAt             DateTime     @updatedAt @map("updated_at")
+  deletedAt             DateTime?    @map("deleted_at")
+
+  owner         Owner            @relation(fields: [ownerId], references: [id])
+  documents     TenantDocument[]
+  leases        Lease[]
+  invoices      Invoice[]
+  payments      Payment[]
+  complaints    Complaint[]
+  notifications Notification[]
+
+  @@unique([ownerId, phone])
+  @@map("tenants")
+}
+
+// ─── 7. Tenant Documents ────────────────────────────────────────────
+
+model TenantDocument {
+  id         String    @id @default(uuid()) @db.Uuid
+  tenantId   String    @map("tenant_id") @db.Uuid
+  docType    DocType   @map("doc_type")
+  fileUrl    String    @map("file_url")
+  verified   Boolean   @default(false)
+  verifiedAt DateTime? @map("verified_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@map("tenant_documents")
+}
+
+// ─── 8. Leases ──────────────────────────────────────────────────────
+
+model Lease {
+  id              String        @id @default(uuid()) @db.Uuid
+  tenantId        String        @map("tenant_id") @db.Uuid
+  bedId           String        @map("bed_id") @db.Uuid
+  propertyId      String        @map("property_id") @db.Uuid
+  rentAmount      Decimal       @map("rent_amount") @db.Decimal(10, 2)
+  securityDeposit Decimal       @default(0) @map("security_deposit") @db.Decimal(10, 2)
+  depositStatus   DepositStatus @default(pending) @map("deposit_status")
+  billingDay      Int           @map("billing_day")
+  moveInDate      DateTime      @map("move_in_date") @db.Date
+  moveOutDate     DateTime?     @map("move_out_date") @db.Date
+  status          LeaseStatus   @default(active)
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id])
+  bed      Bed       @relation(fields: [bedId], references: [id])
+  property Property  @relation(fields: [propertyId], references: [id])
+  invoices Invoice[]
+
+  @@index([status, billingDay])
+  @@map("leases")
+}
+
+// ─── 9. Invoices ────────────────────────────────────────────────────
+
+model Invoice {
+  id            String        @id @default(uuid()) @db.Uuid
+  leaseId       String        @map("lease_id") @db.Uuid
+  tenantId      String        @map("tenant_id") @db.Uuid
+  propertyId    String        @map("property_id") @db.Uuid
+  invoiceNumber String        @map("invoice_number") @db.VarChar(50)
+  periodStart   DateTime      @map("period_start") @db.Date
+  periodEnd     DateTime      @map("period_end") @db.Date
+  dueDate       DateTime      @map("due_date") @db.Date
+  subtotal      Decimal       @db.Decimal(10, 2)
+  total         Decimal       @db.Decimal(10, 2)
+  status        InvoiceStatus @default(draft)
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  lease    Lease         @relation(fields: [leaseId], references: [id])
+  tenant   Tenant        @relation(fields: [tenantId], references: [id])
+  property Property      @relation(fields: [propertyId], references: [id])
+  items    InvoiceItem[]
+  payments Payment[]
+
+  @@index([tenantId, status])
+  @@map("invoices")
+}
+
+// ─── 10. Invoice Items ──────────────────────────────────────────────
+
+model InvoiceItem {
+  id          String   @id @default(uuid()) @db.Uuid
+  invoiceId   String   @map("invoice_id") @db.Uuid
+  description String   @db.VarChar(255)
+  amount      Decimal  @db.Decimal(10, 2)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id])
+
+  @@map("invoice_items")
+}
+
+// ─── 11. Payments ───────────────────────────────────────────────────
+
+model Payment {
+  id                 String        @id @default(uuid()) @db.Uuid
+  invoiceId          String        @map("invoice_id") @db.Uuid
+  tenantId           String        @map("tenant_id") @db.Uuid
+  amount             Decimal       @db.Decimal(10, 2)
+  method             PaymentMethod
+  status             PaymentStatus @default(pending)
+  razorpayPaymentId  String?       @map("razorpay_payment_id") @db.VarChar(100)
+  razorpayOrderId    String?       @map("razorpay_order_id") @db.VarChar(100)
+  paidAt             DateTime?     @map("paid_at")
+  createdAt          DateTime      @default(now()) @map("created_at")
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id])
+  tenant  Tenant  @relation(fields: [tenantId], references: [id])
+
+  @@index([razorpayPaymentId])
+  @@map("payments")
+}
+
+// ─── 12. Complaints ─────────────────────────────────────────────────
+
+model Complaint {
+  id          String            @id @default(uuid()) @db.Uuid
+  tenantId    String            @map("tenant_id") @db.Uuid
+  propertyId  String            @map("property_id") @db.Uuid
+  category    ComplaintCategory
+  title       String            @db.VarChar(255)
+  description String
+  photoUrls   Json?             @default("[]") @map("photo_urls") @db.JsonB
+  status      ComplaintStatus   @default(open)
+  assignedTo  String?           @map("assigned_to") @db.VarChar(255)
+  resolvedAt  DateTime?         @map("resolved_at")
+  rating      Int?
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+
+  tenant   Tenant            @relation(fields: [tenantId], references: [id])
+  property Property          @relation(fields: [propertyId], references: [id])
+  updates  ComplaintUpdate[]
+
+  @@index([propertyId, status])
+  @@map("complaints")
+}
+
+// ─── 13. Complaint Updates ──────────────────────────────────────────
+
+model ComplaintUpdate {
+  id          String          @id @default(uuid()) @db.Uuid
+  complaintId String          @map("complaint_id") @db.Uuid
+  updatedBy   UpdatedBy       @map("updated_by")
+  message     String
+  status      ComplaintStatus
+  createdAt   DateTime        @default(now()) @map("created_at")
+
+  complaint Complaint @relation(fields: [complaintId], references: [id])
+
+  @@map("complaint_updates")
+}
+
+// ─── 14. Notices ────────────────────────────────────────────────────
+
+model Notice {
+  id         String   @id @default(uuid()) @db.Uuid
+  propertyId String?  @map("property_id") @db.Uuid
+  title      String   @db.VarChar(255)
+  body       String
+  createdBy  String   @map("created_by") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  property Property? @relation(fields: [propertyId], references: [id])
+  owner    Owner     @relation(fields: [createdBy], references: [id])
+
+  @@map("notices")
+}
+
+// ─── 15. Notifications ──────────────────────────────────────────────
+
+model Notification {
+  id        String              @id @default(uuid()) @db.Uuid
+  tenantId  String              @map("tenant_id") @db.Uuid
+  type      NotificationType
+  channel   NotificationChannel
+  message   String
+  status    NotificationStatus  @default(sent)
+  sentAt    DateTime?           @map("sent_at")
+  createdAt DateTime            @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@map("notifications")
+}

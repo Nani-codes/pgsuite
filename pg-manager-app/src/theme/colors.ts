@@ -1,0 +1,45 @@
+export const colors = {
+  primary: '#6366F1',
+  primaryDark: '#4F46E5',
+  primaryLight: '#A5B4FC',
+  secondary: '#10B981',
+  warning: '#F59E0B',
+  danger: '#EF4444',
+  background: '#F8FAFC',
+  surface: '#FFFFFF',
+  surfaceAlt: '#F1F5F9',
+  text: '#0F172A',
+  textSecondary: '#64748B',
+  textLight: '#94A3B8',
+  border: '#E2E8F0',
+  borderLight: '#F1F5F9',
+  white: '#FFFFFF',
+  black: '#000000',
+  occupied: '#EF4444',
+  vacant: '#10B981',
+  reserved: '#F59E0B',
+};
+
+export const shadows = {
+  sm: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  md: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  lg: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 5,
+  },
+};

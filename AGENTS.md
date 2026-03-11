@@ -11,7 +11,12 @@
 - **Validation:** Zod v4
 - **Testing:** Jest + ts-jest + Supertest
 
-### Quickstart
+### Architecture
+
+- `pg-manager-api/` — Express 5 REST API (backend)
+- `pg-manager-app/` — Expo React Native app (frontend, runs on web/iOS/Android)
+
+### Quickstart — API
 
 All commands run from `pg-manager-api/`:
 
@@ -25,6 +30,19 @@ All commands run from `pg-manager-api/`:
 | Lint | `pnpm run lint` |
 | Test | `pnpm test` |
 | Build | `pnpm run build` |
+
+### Quickstart — Mobile App
+
+All commands run from `pg-manager-app/`:
+
+| Task | Command |
+|---|---|
+| Install deps | `npm install` |
+| Web dev | `npm run web` (port 8081) |
+| iOS | `npm run ios` |
+| Android | `npm run android` |
+
+The mobile app connects to the API at `localhost:3000` — **start the API first**.
 
 ### Non-obvious caveats
 

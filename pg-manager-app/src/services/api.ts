@@ -112,6 +112,30 @@ export const api = {
         userId,
         userRole: 'owner',
       }),
+    getTenantInvoices: (tenantId: string, userId: string) =>
+      request<{ success: boolean; data: any[] }>(`/billing/invoices/tenant/${tenantId}`, {
+        userId,
+        userRole: 'owner',
+      }),
+    getTenants: (userId: string) =>
+      request<{ success: boolean; data: any[] }>('/billing/tenants', {
+        userId,
+        userRole: 'owner',
+      }),
+    createPayment: (userId: string, data: any) =>
+      request<{ success: boolean; data: any }>('/billing/payments', {
+        method: 'POST',
+        body: data,
+        userId,
+        userRole: 'owner',
+      }),
+    createInvoice: (userId: string, data: any) =>
+      request<{ success: boolean; data: any }>('/billing/invoices', {
+        method: 'POST',
+        body: data,
+        userId,
+        userRole: 'owner',
+      }),
   },
 
   complaints: {
@@ -140,6 +164,21 @@ export const api = {
   analytics: {
     dashboard: (userId: string) =>
       request<{ success: boolean; data: any }>('/analytics/dashboard', {
+        userId,
+        userRole: 'owner',
+      }),
+  },
+
+  expenses: {
+    create: (userId: string, data: any) =>
+      request<{ success: boolean; data: any }>('/expenses', {
+        method: 'POST',
+        body: data,
+        userId,
+        userRole: 'owner',
+      }),
+    list: (userId: string) =>
+      request<{ success: boolean; data: any[] }>('/expenses', {
         userId,
         userRole: 'owner',
       }),

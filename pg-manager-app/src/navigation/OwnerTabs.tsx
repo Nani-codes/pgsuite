@@ -6,6 +6,10 @@ import { colors } from '../theme/colors';
 
 import { DashboardScreen } from '../screens/owner/DashboardScreen';
 import { PropertyDetailScreen } from '../screens/owner/PropertyDetailScreen';
+import { AddPropertyScreen } from '../screens/owner/AddPropertyScreen';
+import { RecordPaymentScreen } from '../screens/owner/RecordPaymentScreen';
+import { AddExpenseScreen } from '../screens/owner/AddExpenseScreen';
+import { AddDuesScreen } from '../screens/owner/AddDuesScreen';
 import { TenantsScreen } from '../screens/owner/TenantsScreen';
 import { AddTenantScreen } from '../screens/owner/AddTenantScreen';
 import { ComplaintsScreen } from '../screens/owner/ComplaintsScreen';
@@ -32,6 +36,26 @@ function DashboardStack() {
         name="PropertyDetail"
         component={PropertyDetailScreen}
         options={{ title: 'Property Details' }}
+      />
+      <Stack.Screen
+        name="AddProperty"
+        component={AddPropertyScreen}
+        options={{ title: 'Add Property' }}
+      />
+      <Stack.Screen
+        name="RecordPayment"
+        component={RecordPaymentScreen}
+        options={{ title: 'Record Payment' }}
+      />
+      <Stack.Screen
+        name="AddExpense"
+        component={AddExpenseScreen}
+        options={{ title: 'Add Expense' }}
+      />
+      <Stack.Screen
+        name="AddDues"
+        component={AddDuesScreen}
+        options={{ title: 'Add Dues' }}
       />
     </Stack.Navigator>
   );

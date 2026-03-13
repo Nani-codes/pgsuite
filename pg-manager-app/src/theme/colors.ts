@@ -1,22 +1,35 @@
 export const colors = {
-  primary: '#6366F1',
-  primaryDark: '#4F46E5',
-  primaryLight: '#A5B4FC',
-  secondary: '#10B981',
+  // Brand / primary blues inspired by reference designs
+  primary: '#0667FF',
+  primaryDark: '#0046C7',
+  primaryLight: '#B3D4FF',
+
+  // Supporting accents
+  secondary: '#16A34A',
   warning: '#F59E0B',
   danger: '#EF4444',
-  background: '#F8FAFC',
+
+  // Surfaces and backgrounds
+  background: '#F3F6FF', // subtle blue-tinted background like marketing shots
   surface: '#FFFFFF',
-  surfaceAlt: '#F1F5F9',
+  surfaceAlt: '#ECF1FF',
+
+  // Text
   text: '#0F172A',
   textSecondary: '#64748B',
   textLight: '#94A3B8',
-  border: '#E2E8F0',
-  borderLight: '#F1F5F9',
+
+  // Borders
+  border: '#D4E0FF',
+  borderLight: '#E5EDFF',
+
+  // Utility
   white: '#FFFFFF',
   black: '#000000',
+
+  // Status
   occupied: '#EF4444',
-  vacant: '#10B981',
+  vacant: '#16A34A',
   reserved: '#F59E0B',
 };
 

@@ -24,13 +24,12 @@ const categories = [
   { key: 'other', icon: 'help-circle-outline', label: 'Other' },
 ] as const;
 
-export function TenantComplaintsScreen() {
+export function TenantComplaintsScreen({ navigation }: any) {
   const { user } = useAuth();
   const [category, setCategory] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
 
   const handleSubmit = async () => {
     if (!category || !title || !description) {
@@ -39,51 +38,27 @@ export function TenantComplaintsScreen() {
     }
     setLoading(true);
     try {
-      // In a real app, the propertyId would come from the tenant's active lease
       await api.complaints.create(user!.id, {
-        propertyId: '00000000-0000-0000-0000-000000000000',
         category,
         title,
         description,
       });
-      setSubmitted(true);
+      Alert.alert('Success', 'Your complaint has been submitted. The PG owner will be notified.', [
+        { text: 'OK', onPress: () => navigation.goBack() },
+      ]);
     } catch (err: any) {
-      Alert.alert('Note', 'Complaint form submitted (demo mode)');
-      setSubmitted(true);
+      Alert.alert(
+        'Submitted',
+        'Complaint form submitted (demo mode)',
+        [{ text: 'OK', onPress: () => navigation.goBack() }],
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  if (submitted) {
-    return (
-      <View style={styles.successContainer}>
-        <View style={styles.successIcon}>
-          <Ionicons name="checkmark-circle" size={64} color={colors.secondary} />
-        </View>
-        <Text style={styles.successTitle}>Complaint Submitted!</Text>
-        <Text style={styles.successText}>
-          Your complaint has been logged. The PG owner will be notified and will
-          respond shortly.
-        </Text>
-        <Button
-          title="Submit Another"
-          onPress={() => {
-            setSubmitted(false);
-            setCategory('');
-            setTitle('');
-            setDescription('');
-          }}
-          variant="outline"
-          style={{ marginTop: 20 }}
-        />
-      </View>
-    );
-  }
-
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.screenTitle}>Raise a Complaint</Text>
       <Text style={styles.screenSubtitle}>
         Tell us what's wrong and we'll get it resolved
       </Text>
@@ -151,8 +126,11 @@ export function TenantComplaintsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   content: { padding: 16, paddingBottom: 40 },
-  screenTitle: { fontSize: 22, fontWeight: '700', color: colors.text },
-  screenSubtitle: { fontSize: 14, color: colors.textSecondary, marginTop: 4, marginBottom: 20 },
+  screenSubtitle: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginBottom: 20,
+  },
   label: {
     fontSize: 13,
     fontWeight: '600',
@@ -197,21 +175,5 @@ const styles = StyleSheet.create({
   textArea: {
     height: 120,
     paddingTop: 12,
-  },
-  successContainer: {
-    flex: 1,
-    backgroundColor: colors.background,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 32,
-  },
-  successIcon: { marginBottom: 16 },
-  successTitle: { fontSize: 22, fontWeight: '700', color: colors.text },
-  successText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginTop: 8,
-    lineHeight: 20,
   },
 });

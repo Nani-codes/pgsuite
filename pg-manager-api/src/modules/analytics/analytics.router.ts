@@ -12,7 +12,12 @@ router.get('/dashboard', async (req, res, next) => {
   try {
     const ownerId = req.user!.sub;
 
-    const [properties, beds, openComplaints] = await Promise.all([
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const [properties, beds, openComplaints, todayPayments, unpaidInvoices] = await Promise.all([
       prisma.property.count({ where: { ownerId, deletedAt: null } }),
       prisma.bed.groupBy({
         by: ['status'],
@@ -25,9 +30,26 @@ router.get('/dashboard', async (req, res, next) => {
           status: { in: ['open', 'in_progress'] },
         },
       }),
+      // Today's collection: sum of payments received today
+      prisma.payment.aggregate({
+        _sum: { amount: true },
+        where: {
+          status: 'success',
+          paidAt: { gte: today, lt: tomorrow },
+          invoice: { property: { ownerId } },
+        },
+      }),
+      // Total dues: sum of unpaid invoice totals
+      prisma.invoice.aggregate({
+        _sum: { total: true },
+        where: {
+          property: { ownerId },
+          status: { in: ['sent', 'partially_paid', 'overdue'] },
+        },
+      }),
     ]);
 
-    const occupancy = { total: 0, vacant: 0, occupied: 0, reserved: 0 };
+    const occupancy = { total: 0, vacant: 0, occupied: 0, reserved: 0 } as Record<string, number>;
     for (const b of beds) {
       occupancy[b.status] = b._count;
       occupancy.total += b._count;
@@ -39,6 +61,8 @@ router.get('/dashboard', async (req, res, next) => {
         totalProperties: properties,
         occupancy,
         openComplaints,
+        todayCollection: Number(todayPayments._sum.amount || 0),
+        totalDues: Number(unpaidInvoices._sum.total || 0),
       },
     });
   } catch (err) { next(err); }

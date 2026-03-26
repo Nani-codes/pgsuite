@@ -11,9 +11,9 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { Button } from '../../components/Button';
-import { Card } from '../../components/Card';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../services/api';
+import type { Property } from '../../types';
 
 const EXPENSE_CATEGORIES = [
   { key: 'maintenance', label: 'Maintenance', icon: 'construct-outline' },
@@ -26,8 +26,8 @@ const EXPENSE_CATEGORIES = [
 
 export function AddExpenseScreen({ navigation }: any) {
   const { user } = useAuth();
-  const [properties, setProperties] = useState<any[]>([]);
-  const [selectedProperty, setSelectedProperty] = useState<any>(null);
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [category, setCategory] = useState('maintenance');
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
@@ -64,7 +64,10 @@ export function AddExpenseScreen({ navigation }: any) {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+    >
       <Text style={styles.sectionTitle}>Select Property</Text>
       <View style={styles.optionsRow}>
         {properties.map((prop) => (
@@ -79,7 +82,11 @@ export function AddExpenseScreen({ navigation }: any) {
             <Ionicons
               name="business-outline"
               size={14}
-              color={selectedProperty?.id === prop.id ? colors.white : colors.textSecondary}
+              color={
+                selectedProperty?.id === prop.id
+                  ? colors.white
+                  : colors.textSecondary
+              }
             />
             <Text
               style={[
@@ -109,7 +116,11 @@ export function AddExpenseScreen({ navigation }: any) {
                 <Ionicons
                   name={cat.icon as any}
                   size={20}
-                  color={category === cat.key ? colors.white : colors.textSecondary}
+                  color={
+                    category === cat.key
+                      ? colors.white
+                      : colors.textSecondary
+                  }
                 />
                 <Text
                   style={[
@@ -151,6 +162,7 @@ export function AddExpenseScreen({ navigation }: any) {
             title="Add Expense"
             onPress={handleSubmit}
             loading={loading}
+            disabled={!amount || !description}
             size="lg"
             style={{ marginTop: 24 }}
           />
@@ -223,6 +235,10 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
     backgroundColor: colors.primary,
   },
-  categoryLabel: { fontSize: 12, fontWeight: '600', color: colors.textSecondary },
+  categoryLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
   categoryLabelActive: { color: colors.white },
 });

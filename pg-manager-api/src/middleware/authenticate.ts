@@ -1,29 +1,27 @@
 import type { Request, Response, NextFunction } from 'express';
 import { UnauthorizedError } from '../utils/errors.js';
-
-export interface AuthPayload {
-  sub: string;
-  role: 'owner' | 'tenant';
-  propertyIds?: string[];
-}
+import { verifyToken, TokenPayload } from '../utils/token.js';
 
 /**
- * Placeholder JWT authentication middleware.
- * In production, replace with actual JWT verification (e.g. BetterAuth / jose).
- * For now, it reads x-user-id and x-user-role headers for development.
+ * JWT authentication middleware.
+ * Verifies the Authorization: Bearer <token> header.
  */
 export function authenticate(req: Request, _res: Response, next: NextFunction) {
-  const userId = req.headers['x-user-id'] as string | undefined;
-  const role = req.headers['x-user-role'] as string | undefined;
-
-  if (!userId || !role) {
-    throw new UnauthorizedError('Missing authentication headers');
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    throw new UnauthorizedError('Missing or invalid authorization header');
   }
 
-  if (role !== 'owner' && role !== 'tenant') {
-    throw new UnauthorizedError('Invalid role');
+  const token = authHeader.split(' ')[1];
+  if (!token) {
+    throw new UnauthorizedError('Token not found');
   }
 
-  req.user = { sub: userId, role };
-  next();
+  try {
+    const payload = verifyToken(token);
+    req.user = { sub: payload.sub, role: payload.role };
+    next();
+  } catch (err) {
+    throw new UnauthorizedError('Invalid or expired token');
+  }
 }

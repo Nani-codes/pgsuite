@@ -13,16 +13,19 @@ import { Card } from '../../components/Card';
 import { Badge } from '../../components/Badge';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../services/api';
+import type { Invoice } from '../../types';
 
 export function HomeScreen({ navigation }: any) {
   const { user, logout } = useAuth();
-  const [invoices, setInvoices] = useState<any[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const loadData = async () => {
     if (!user) return;
+    setError(null);
     try {
-      const res = await api.billing.listInvoices(user.id);
+      const res = await api.billing.listInvoices(user.id, 'tenant');
       setInvoices(res.data);
     } catch {
       // Tenant may not have invoices yet
@@ -39,6 +42,21 @@ export function HomeScreen({ navigation }: any) {
     setRefreshing(false);
   };
 
+  const pendingInvoices = invoices.filter(
+    (inv) => inv.status !== 'paid' && inv.status !== 'waived',
+  );
+  const totalDue = pendingInvoices.reduce(
+    (sum, inv) => sum + Number(inv.total),
+    0,
+  );
+
+  const greeting = (() => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  })();
+
   return (
     <ScrollView
       style={styles.container}
@@ -50,10 +68,13 @@ export function HomeScreen({ navigation }: any) {
       <View style={styles.hero}>
         <View style={styles.heroHeaderRow}>
           <View>
-            <Text style={styles.heroTitle}>100% Rent Collection</Text>
-            <Text style={styles.heroTitleEmphasis}>in 5 days</Text>
+            <Text style={styles.greeting}>
+              {greeting}, {user?.name?.split(' ')[0] || 'there'}
+            </Text>
             <Text style={styles.heroSubtitle}>
-              Send bulk rent reminders & QR links
+              {pendingInvoices.length > 0
+                ? `You have ${pendingInvoices.length} pending invoice${pendingInvoices.length > 1 ? 's' : ''}`
+                : "You're all caught up!"}
             </Text>
           </View>
           <TouchableOpacity onPress={logout} style={styles.logoutBtn}>
@@ -66,38 +87,59 @@ export function HomeScreen({ navigation }: any) {
         </View>
 
         <View style={[styles.rentCard, shadows.lg]}>
-          <View style={styles.rentHeaderRow}>
-            <View>
-              <Text style={styles.rentReminderText}>
-                Automatic reminder set for this month
-              </Text>
-              {invoices[0] && (
-                <Text style={styles.rentTenant}>
-                  {invoices[0].tenant?.name || 'Your PG'}
+          {totalDue > 0 ? (
+            <>
+              <View style={styles.rentHeaderRow}>
+                <View>
+                  <Text style={styles.rentReminderText}>Amount due</Text>
+                  <Text style={styles.rentAmount}>
+                    ₹{totalDue.toLocaleString()}
+                  </Text>
+                </View>
+                {pendingInvoices[0] && (
+                  <View style={styles.dueDateBadge}>
+                    <Text style={styles.dueDateText}>
+                      Due{' '}
+                      {new Date(
+                        pendingInvoices[0].dueDate,
+                      ).toLocaleDateString('en-IN', {
+                        day: 'numeric',
+                        month: 'short',
+                      })}
+                    </Text>
+                  </View>
+                )}
+              </View>
+              <View style={styles.rentActionsRow}>
+                <TouchableOpacity
+                  style={styles.rentSecondaryButton}
+                  onPress={() => navigation.navigate('PayRent')}
+                >
+                  <Text style={styles.rentSecondaryText}>View Details</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.rentPrimaryButton}
+                  onPress={() => navigation.navigate('PayRent')}
+                >
+                  <Text style={styles.rentPrimaryText}>Pay Rent</Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          ) : (
+            <View style={styles.allPaidRow}>
+              <Ionicons
+                name="checkmark-circle"
+                size={28}
+                color={colors.secondary}
+              />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.allPaidTitle}>All dues cleared</Text>
+                <Text style={styles.allPaidSubtitle}>
+                  No pending payments at the moment
                 </Text>
-              )}
+              </View>
             </View>
-            {invoices[0] && (
-              <Text style={styles.rentAmount}>
-                ₹{Number(invoices[0].total).toLocaleString()}
-              </Text>
-            )}
-          </View>
-
-          <View style={styles.rentActionsRow}>
-            <TouchableOpacity 
-              style={styles.rentSecondaryButton}
-              onPress={() => navigation.navigate('PayRent')}
-            >
-              <Text style={styles.rentSecondaryText}>View Invoices</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.rentPrimaryButton}
-              onPress={() => navigation.navigate('PayRent')}
-            >
-              <Text style={styles.rentPrimaryText}>Pay Rent</Text>
-            </TouchableOpacity>
-          </View>
+          )}
         </View>
       </View>
 
@@ -109,31 +151,33 @@ export function HomeScreen({ navigation }: any) {
               icon: 'chatbubble-ellipses-outline' as const,
               label: 'Complaints',
               color: colors.warning,
-              screen: 'Complaints',
+              onPress: () =>
+                navigation.getParent()?.navigate('Complaints'),
             },
             {
               icon: 'notifications-outline' as const,
               label: 'Notifications',
               color: colors.primary,
-              screen: 'Notifications',
+              onPress: () =>
+                navigation.getParent()?.navigate('Notifications'),
             },
             {
               icon: 'document-text-outline' as const,
               label: 'Documents',
               color: colors.secondary,
-              screen: 'Documents',
+              onPress: () => navigation.navigate('Documents'),
             },
             {
               icon: 'card-outline' as const,
               label: 'Pay Rent',
               color: '#8B5CF6',
-              screen: 'PayRent',
+              onPress: () => navigation.navigate('PayRent'),
             },
           ].map((action) => (
-            <TouchableOpacity 
-              key={action.label} 
+            <TouchableOpacity
+              key={action.label}
               style={styles.actionItem}
-              onPress={() => navigation.navigate(action.screen)}
+              onPress={action.onPress}
             >
               <View
                 style={[
@@ -166,14 +210,18 @@ export function HomeScreen({ navigation }: any) {
             </View>
           </Card>
         ) : (
-          invoices.map((inv) => (
+          invoices.slice(0, 5).map((inv) => (
             <Card key={inv.id} style={styles.invoiceCard} variant="elevated">
               <View style={styles.invoiceRow}>
                 <View>
-                  <Text style={styles.invoiceNumber}>{inv.invoiceNumber}</Text>
+                  <Text style={styles.invoiceNumber}>
+                    {inv.invoiceNumber}
+                  </Text>
                   <Text style={styles.invoicePeriod}>
-                    {new Date(inv.periodStart).toLocaleDateString()} -{' '}
-                    {new Date(inv.periodEnd).toLocaleDateString()}
+                    {new Date(inv.periodStart).toLocaleDateString('en-IN', {
+                      month: 'short',
+                      year: 'numeric',
+                    })}
                   </Text>
                 </View>
                 <View style={{ alignItems: 'flex-end' }}>
@@ -213,10 +261,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
   },
-  heroTitle: { fontSize: 20, fontWeight: '700', color: colors.white },
-  heroTitleEmphasis: { fontSize: 22, fontWeight: '800', color: colors.white },
+  greeting: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: colors.white,
+  },
   heroSubtitle: {
-    marginTop: 6,
+    marginTop: 4,
     fontSize: 13,
     color: 'rgba(255,255,255,0.85)',
   },
@@ -244,16 +295,38 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textSecondary,
   },
-  rentTenant: {
+  rentAmount: {
     marginTop: 4,
-    fontSize: 15,
+    fontSize: 28,
+    fontWeight: '800',
+    color: colors.text,
+  },
+  dueDateBadge: {
+    backgroundColor: colors.warning + '20',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  dueDateText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.warning,
+  },
+  allPaidRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 4,
+  },
+  allPaidTitle: {
+    fontSize: 16,
     fontWeight: '600',
     color: colors.text,
   },
-  rentAmount: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.primary,
+  allPaidSubtitle: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginTop: 2,
   },
   rentActionsRow: {
     flexDirection: 'row',
@@ -311,9 +384,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 6,
   },
-  actionLabel: { fontSize: 12, color: colors.textSecondary, textAlign: 'center' },
+  actionLabel: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
   emptyInvoice: { alignItems: 'center', padding: 20 },
-  emptyText: { fontSize: 15, fontWeight: '600', color: colors.textSecondary, marginTop: 8 },
+  emptyText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    marginTop: 8,
+  },
   emptySubtext: { fontSize: 13, color: colors.textLight, marginTop: 2 },
   invoiceCard: { marginBottom: 10 },
   invoiceRow: {
@@ -323,5 +405,10 @@ const styles = StyleSheet.create({
   },
   invoiceNumber: { fontSize: 14, fontWeight: '600', color: colors.text },
   invoicePeriod: { fontSize: 12, color: colors.textLight, marginTop: 2 },
-  invoiceTotal: { fontSize: 16, fontWeight: '700', color: colors.text, marginBottom: 4 },
+  invoiceTotal: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 4,
+  },
 });

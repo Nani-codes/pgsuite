@@ -9,6 +9,10 @@ const envSchema = z.object({
   DATABASE_URL: z.url(),
   JWT_SECRET: z.string().min(8),
   JWT_REFRESH_SECRET: z.string().min(8),
+  TWILIO_ACCOUNT_SID: z.string().min(1),
+  TWILIO_AUTH_TOKEN: z.string().min(1),
+  TWILIO_VERIFY_SID: z.string().min(1),
+  TWILIO_DEV_OTP: z.string().default('false'),
 });
 
 const parsed = envSchema.safeParse(process.env);

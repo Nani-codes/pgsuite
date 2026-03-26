@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import { Button } from '../../components/Button';
 import { EmptyState } from '../../components/EmptyState';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../services/api';
+import type { Tenant } from '../../types';
 
 const statusBadgeColors: Record<string, { bg: string; text: string }> = {
   active: { bg: '#D1FAE5', text: '#065F46' },
@@ -25,10 +26,10 @@ const statusBadgeColors: Record<string, { bg: string; text: string }> = {
 
 export function TenantsScreen({ navigation }: any) {
   const { user } = useAuth();
-  const [tenants, setTenants] = useState<any[]>([]);
+  const [tenants, setTenants] = useState<Tenant[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!user) return;
     try {
       const res = await api.tenants.list(user.id);
@@ -36,12 +37,12 @@ export function TenantsScreen({ navigation }: any) {
     } catch (err) {
       console.error(err);
     }
-  };
+  }, [user]);
 
   useFocusEffect(
     useCallback(() => {
       loadData();
-    }, [user]),
+    }, [loadData]),
   );
 
   const onRefresh = async () => {
@@ -50,53 +51,71 @@ export function TenantsScreen({ navigation }: any) {
     setRefreshing(false);
   };
 
-  const renderTenant = ({ item }: { item: any }) => {
-    const activeLease = item.leases?.find((l: any) => l.status === 'active');
+  const renderTenant = ({ item }: { item: Tenant }) => {
+    const activeLease = item.leases?.find((l) => l.status === 'active');
     const sc = statusBadgeColors[item.status] || statusBadgeColors.active;
 
     return (
-      <Card style={styles.tenantCard}>
-        <View style={styles.tenantHeader}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>
-              {item.name.charAt(0).toUpperCase()}
-            </Text>
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.tenantName}>{item.name}</Text>
-            <Text style={styles.tenantPhone}>
-              <Ionicons name="call-outline" size={12} color={colors.textLight} />
-              {' '}{item.phone}
-            </Text>
-          </View>
-          <Badge label={item.status} color={sc.bg} textColor={sc.text} />
-        </View>
-
-        {activeLease && (
-          <View style={styles.leaseInfo}>
-            <View style={styles.leaseRow}>
-              <View style={styles.leaseItem}>
-                <Ionicons name="business-outline" size={14} color={colors.textSecondary} />
-                <Text style={styles.leaseText}>
-                  {activeLease.property?.name || 'Property'}
-                </Text>
-              </View>
-              <View style={styles.leaseItem}>
-                <Ionicons name="bed-outline" size={14} color={colors.textSecondary} />
-                <Text style={styles.leaseText}>
-                  Room {activeLease.bed?.room?.roomNumber} · {activeLease.bed?.label}
-                </Text>
-              </View>
-            </View>
-            <View style={styles.rentRow}>
-              <Text style={styles.rentLabel}>Rent</Text>
-              <Text style={styles.rentAmount}>
-                ₹{Number(activeLease.rentAmount).toLocaleString()}/mo
+      <TouchableOpacity
+        activeOpacity={0.7}
+        onPress={() => navigation.navigate('TenantDetail', { tenantId: item.id })}
+      >
+        <Card style={styles.tenantCard}>
+          <View style={styles.tenantHeader}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>
+                {item.name.charAt(0).toUpperCase()}
               </Text>
             </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.tenantName}>{item.name}</Text>
+              <Text style={styles.tenantPhone}>
+                <Ionicons
+                  name="call-outline"
+                  size={12}
+                  color={colors.textLight}
+                />{' '}
+                {item.phone}
+              </Text>
+            </View>
+            <Badge label={item.status} color={sc.bg} textColor={sc.text} />
           </View>
-        )}
-      </Card>
+
+          {activeLease && (
+            <View style={styles.leaseInfo}>
+              <View style={styles.leaseRow}>
+                <View style={styles.leaseItem}>
+                  <Ionicons
+                    name="business-outline"
+                    size={14}
+                    color={colors.textSecondary}
+                  />
+                  <Text style={styles.leaseText}>
+                    {activeLease.property?.name || 'Property'}
+                  </Text>
+                </View>
+                <View style={styles.leaseItem}>
+                  <Ionicons
+                    name="bed-outline"
+                    size={14}
+                    color={colors.textSecondary}
+                  />
+                  <Text style={styles.leaseText}>
+                    Room {activeLease.bed?.room?.roomNumber} ·{' '}
+                    {activeLease.bed?.label}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.rentRow}>
+                <Text style={styles.rentLabel}>Rent</Text>
+                <Text style={styles.rentAmount}>
+                  ₹{Number(activeLease.rentAmount).toLocaleString()}/mo
+                </Text>
+              </View>
+            </View>
+          )}
+        </Card>
+      </TouchableOpacity>
     );
   };
 

@@ -5,8 +5,8 @@ import type { CreateTenantInput, UpdateTenantInput } from './tenant.schema.js';
 const repo = new TenantRepository();
 
 export class TenantService {
-  async listTenants(ownerId: string) {
-    return repo.findAllByOwner(ownerId);
+  async listTenants(ownerId: string, query: any = {}) {
+    return repo.findAllByOwner(ownerId, query);
   }
 
   async getTenant(id: string, ownerId: string) {

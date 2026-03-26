@@ -12,8 +12,12 @@ import { Card } from '../../components/Card';
 import { EmptyState } from '../../components/EmptyState';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../services/api';
+import type { AppNotification } from '../../types';
 
-const typeIcons: Record<string, { icon: keyof typeof Ionicons.glyphMap; color: string }> = {
+const typeIcons: Record<
+  string,
+  { icon: keyof typeof Ionicons.glyphMap; color: string }
+> = {
   rent_due: { icon: 'wallet-outline', color: colors.warning },
   payment_success: { icon: 'checkmark-circle-outline', color: colors.secondary },
   complaint_update: { icon: 'chatbubble-outline', color: colors.primary },
@@ -23,7 +27,7 @@ const typeIcons: Record<string, { icon: keyof typeof Ionicons.glyphMap; color: s
 
 export function NotificationsScreen() {
   const { user } = useAuth();
-  const [notifications, setNotifications] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
   const loadData = async () => {
@@ -46,19 +50,30 @@ export function NotificationsScreen() {
     setRefreshing(false);
   };
 
-  const renderNotification = ({ item }: { item: any }) => {
+  const renderNotification = ({ item }: { item: AppNotification }) => {
     const typeInfo = typeIcons[item.type] || typeIcons.notice;
     return (
       <Card style={styles.notifCard}>
         <View style={styles.notifRow}>
-          <View style={[styles.iconBg, { backgroundColor: typeInfo.color + '15' }]}>
-            <Ionicons name={typeInfo.icon} size={18} color={typeInfo.color} />
+          <View
+            style={[
+              styles.iconBg,
+              { backgroundColor: typeInfo.color + '15' },
+            ]}
+          >
+            <Ionicons
+              name={typeInfo.icon}
+              size={18}
+              color={typeInfo.color}
+            />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.notifType}>{item.type.replace(/_/g, ' ')}</Text>
+            <Text style={styles.notifType}>
+              {item.type.replace(/_/g, ' ')}
+            </Text>
             <Text style={styles.notifMessage}>{item.message}</Text>
             <Text style={styles.notifTime}>
-              {new Date(item.createdAt).toLocaleString()}
+              {new Date(item.createdAt).toLocaleString('en-IN')}
             </Text>
           </View>
         </View>
@@ -94,9 +109,18 @@ export function NotificationsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   list: { padding: 16, paddingBottom: 32 },
-  title: { fontSize: 22, fontWeight: '700', color: colors.text, marginBottom: 16 },
+  title: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 16,
+  },
   notifCard: { marginBottom: 10 },
-  notifRow: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
+  notifRow: {
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'flex-start',
+  },
   iconBg: {
     width: 36,
     height: 36,
@@ -110,6 +134,11 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textTransform: 'capitalize',
   },
-  notifMessage: { fontSize: 14, color: colors.text, marginTop: 2, lineHeight: 18 },
+  notifMessage: {
+    fontSize: 14,
+    color: colors.text,
+    marginTop: 2,
+    lineHeight: 18,
+  },
   notifTime: { fontSize: 11, color: colors.textLight, marginTop: 4 },
 });

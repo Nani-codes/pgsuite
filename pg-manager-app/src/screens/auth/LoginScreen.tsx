@@ -8,6 +8,7 @@ import {
   Platform,
   Alert,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { Button } from '../../components/Button';
@@ -15,15 +16,17 @@ import { useAuth } from '../../context/AuthContext';
 import { api } from '../../services/api';
 
 export function LoginScreen() {
-  const { login, isLoading } = useAuth();
+  const { login, register, isLoading } = useAuth();
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
-  const [step, setStep] = useState<'phone' | 'otp'>('phone');
+  const [step, setStep] = useState<'phone' | 'otp' | 'register'>('phone');
   const [sending, setSending] = useState(false);
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
 
   const handleSendOtp = async () => {
     if (phone.length < 10) {
-      Alert.alert('Error', 'Please enter a valid phone number');
+      Toast.show({ type: 'error', text1: 'Invalid Phone', text2: 'Please enter a valid phone number' });
       return;
     }
     setSending(true);
@@ -31,7 +34,7 @@ export function LoginScreen() {
       await api.auth.sendOtp(phone);
       setStep('otp');
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Failed to send OTP');
+      Toast.show({ type: 'error', text1: 'OTP Failed', text2: err.message || 'Failed to send OTP' });
     } finally {
       setSending(false);
     }
@@ -39,9 +42,24 @@ export function LoginScreen() {
 
   const handleVerifyOtp = async () => {
     try {
-      await login(phone, otp);
+      const result = await login(phone, otp);
+      if (result && result.isNewUser) {
+        setStep('register');
+      }
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Invalid OTP');
+      Toast.show({ type: 'error', text1: 'Verification Failed', text2: err.message || 'Invalid OTP' });
+    }
+  };
+
+  const handleRegister = async () => {
+    if (!name.trim()) {
+      Toast.show({ type: 'error', text1: 'Name Required', text2: 'Name is required to register' });
+      return;
+    }
+    try {
+      await register(phone, name.trim(), email.trim() || undefined);
+    } catch (err: any) {
+      Toast.show({ type: 'error', text1: 'Registration Failed', text2: err.message || 'Registration failed' });
     }
   };
 
@@ -66,7 +84,7 @@ export function LoginScreen() {
             <>
               <Text style={styles.formTitle}>Welcome</Text>
               <Text style={styles.formSubtitle}>
-                Enter your phone number to get started
+                We'll send you an SMS verification code
               </Text>
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Phone Number</Text>
@@ -92,11 +110,9 @@ export function LoginScreen() {
                 size="lg"
                 style={{ marginTop: 8 }}
               />
-              <Text style={styles.hint}>
-                Dev mode: Use 9876543210 (owner) or 9123456789 (tenant)
-              </Text>
+
             </>
-          ) : (
+          ) : step === 'otp' ? (
             <>
               <Text style={styles.formTitle}>Verify OTP</Text>
               <Text style={styles.formSubtitle}>
@@ -131,7 +147,45 @@ export function LoginScreen() {
                 size="sm"
                 style={{ marginTop: 12 }}
               />
-              <Text style={styles.hint}>Dev mode: OTP is always 123456</Text>
+            </>
+          ) : (
+            <>
+              <Text style={styles.formTitle}>Complete Profile</Text>
+              <Text style={styles.formSubtitle}>
+                Looks like you're new! Let's get you set up as an Owner.
+              </Text>
+              
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Full Name</Text>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="John Doe"
+                  value={name}
+                  onChangeText={setName}
+                  placeholderTextColor={colors.textLight}
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Email (Optional)</Text>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="john@example.com"
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  placeholderTextColor={colors.textLight}
+                />
+              </View>
+
+              <Button
+                title="Create Account"
+                onPress={handleRegister}
+                loading={isLoading}
+                size="lg"
+                style={{ marginTop: 8 }}
+              />
             </>
           )}
         </View>
@@ -242,6 +296,17 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     letterSpacing: 8,
     textAlign: 'center',
+  },
+  textInput: {
+    backgroundColor: colors.surfaceAlt,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 16,
+    fontWeight: '500',
+    color: colors.text,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   hint: {
     fontSize: 12,

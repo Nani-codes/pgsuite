@@ -15,6 +15,8 @@ import expenseRouter from './modules/expense/expense.router.js';
 import complaintRouter from './modules/complaint/complaint.router.js';
 import notificationRouter from './modules/notification/notification.router.js';
 import analyticsRouter from './modules/analytics/analytics.router.js';
+import ownerRouter from './modules/owner/owner.router.js';
+import noticeRouter from './modules/notice/notice.router.js';
 
 const app = express();
 
@@ -35,6 +37,8 @@ app.use('/v1/expenses', expenseRouter);
 app.use('/v1/complaints', complaintRouter);
 app.use('/v1/notifications', notificationRouter);
 app.use('/v1/analytics', analyticsRouter);
+app.use('/v1/owners', ownerRouter);
+app.use('/v1/notices', noticeRouter);
 
 app.use(errorHandler);
 

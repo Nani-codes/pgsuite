@@ -160,7 +160,9 @@ model Property {
   invoices   Invoice[]
   complaints Complaint[]
   notices    Notice[]
+  expenses   Expense[]
 
+  @@index([ownerId])
   @@map("properties")
 }
 
@@ -175,6 +177,7 @@ model Floor {
   property Property @relation(fields: [propertyId], references: [id])
   rooms    Room[]
 
+  @@index([propertyId])
   @@map("floors")
 }
 
@@ -195,6 +198,7 @@ model Room {
   floor    Floor?   @relation(fields: [floorId], references: [id])
   beds     Bed[]
 
+  @@index([propertyId])
   @@map("rooms")
 }
 
@@ -212,6 +216,7 @@ model Bed {
   leases Lease[]
 
   @@index([status])
+  @@index([roomId])
   @@map("beds")
 }
 
@@ -256,6 +261,7 @@ model TenantDocument {
 
   tenant Tenant @relation(fields: [tenantId], references: [id])
 
+  @@index([tenantId])
   @@map("tenant_documents")
 }
 
@@ -282,6 +288,9 @@ model Lease {
   invoices Invoice[]
 
   @@index([status, billingDay])
+  @@index([tenantId])
+  @@index([propertyId])
+  @@index([bedId])
   @@map("leases")
 }
 
@@ -309,6 +318,8 @@ model Invoice {
   payments Payment[]
 
   @@index([tenantId, status])
+  @@index([propertyId])
+  @@index([leaseId])
   @@map("invoices")
 }
 
@@ -323,6 +334,7 @@ model InvoiceItem {
 
   invoice Invoice @relation(fields: [invoiceId], references: [id])
 
+  @@index([invoiceId])
   @@map("invoice_items")
 }
 
@@ -344,6 +356,8 @@ model Payment {
   tenant  Tenant  @relation(fields: [tenantId], references: [id])
 
   @@index([razorpayPaymentId])
+  @@index([invoiceId])
+  @@index([tenantId])
   @@map("payments")
 }
 
@@ -384,6 +398,7 @@ model ComplaintUpdate {
 
   complaint Complaint @relation(fields: [complaintId], references: [id])
 
+  @@index([complaintId])
   @@map("complaint_updates")
 }
 
@@ -417,6 +432,7 @@ model Notification {
 
   tenant Tenant @relation(fields: [tenantId], references: [id])
 
+  @@index([tenantId])
   @@map("notifications")
 }
 

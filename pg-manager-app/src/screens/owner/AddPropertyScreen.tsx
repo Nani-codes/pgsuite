@@ -71,7 +71,10 @@ export function AddPropertyScreen({ navigation }: any) {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+    >
       <Text style={styles.sectionTitle}>Property Details</Text>
 
       <Text style={styles.label}>Property Name *</Text>
@@ -111,7 +114,8 @@ export function AddPropertyScreen({ navigation }: any) {
             key={amenity}
             style={[
               styles.amenityChip,
-              selectedAmenities.includes(amenity) && styles.amenityChipActive,
+              selectedAmenities.includes(amenity) &&
+                styles.amenityChipActive,
             ]}
             onPress={() => toggleAmenity(amenity)}
           >
@@ -131,7 +135,8 @@ export function AddPropertyScreen({ navigation }: any) {
             <Text
               style={[
                 styles.amenityText,
-                selectedAmenities.includes(amenity) && styles.amenityTextActive,
+                selectedAmenities.includes(amenity) &&
+                  styles.amenityTextActive,
               ]}
             >
               {amenity}
@@ -144,6 +149,7 @@ export function AddPropertyScreen({ navigation }: any) {
         title="Add Property"
         onPress={handleSubmit}
         loading={loading}
+        disabled={!name || !address || !city}
         size="lg"
         style={{ marginTop: 32 }}
       />

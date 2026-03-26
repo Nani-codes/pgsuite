@@ -9,8 +9,8 @@ function paramId(req: Request): string {
 
 export class TenantController {
   async list(req: Request, res: Response) {
-    const tenants = await service.listTenants(req.user!.sub);
-    res.json({ success: true, data: tenants });
+    const { data, meta } = await service.listTenants(req.user!.sub, req.query);
+    res.json({ success: true, data, meta });
   }
 
   async get(req: Request, res: Response) {

@@ -13,13 +13,14 @@ import { colors } from '../../theme/colors';
 import { Button } from '../../components/Button';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../services/api';
+import type { Tenant, Property } from '../../types';
 
 export function AddDuesScreen({ navigation }: any) {
   const { user } = useAuth();
-  const [tenants, setTenants] = useState<any[]>([]);
-  const [selectedTenant, setSelectedTenant] = useState<any>(null);
-  const [properties, setProperties] = useState<any[]>([]);
-  const [selectedProperty, setSelectedProperty] = useState<any>(null);
+  const [tenants, setTenants] = useState<Tenant[]>([]);
+  const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [rentAmount, setRentAmount] = useState('');
   const [description, setDescription] = useState('Monthly Rent');
   const [loading, setLoading] = useState(false);
@@ -32,7 +33,7 @@ export function AddDuesScreen({ navigation }: any) {
   }, [user]);
 
   useEffect(() => {
-    if (selectedTenant && selectedTenant.leases?.length > 0) {
+    if (selectedTenant && selectedTenant.leases?.length) {
       setRentAmount(String(selectedTenant.leases[0].rentAmount));
     }
   }, [selectedTenant]);
@@ -56,10 +57,12 @@ export function AddDuesScreen({ navigation }: any) {
         periodStart: periodStart.toISOString().split('T')[0],
         periodEnd: periodEnd.toISOString().split('T')[0],
         dueDate: dueDate.toISOString().split('T')[0],
-        items: [{
-          description,
-          amount: Number(rentAmount),
-        }],
+        items: [
+          {
+            description,
+            amount: Number(rentAmount),
+          },
+        ],
       });
       Alert.alert('Success', 'Dues added successfully', [
         { text: 'OK', onPress: () => navigation.goBack() },
@@ -72,7 +75,10 @@ export function AddDuesScreen({ navigation }: any) {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+    >
       <Text style={styles.sectionTitle}>Select Tenant</Text>
       <View style={styles.optionsRow}>
         {tenants.map((tenant) => (
@@ -87,7 +93,11 @@ export function AddDuesScreen({ navigation }: any) {
             <Ionicons
               name="person-outline"
               size={14}
-              color={selectedTenant?.id === tenant.id ? colors.white : colors.textSecondary}
+              color={
+                selectedTenant?.id === tenant.id
+                  ? colors.white
+                  : colors.textSecondary
+              }
             />
             <Text
               style={[
@@ -114,19 +124,25 @@ export function AddDuesScreen({ navigation }: any) {
                 key={prop.id}
                 style={[
                   styles.optionChip,
-                  selectedProperty?.id === prop.id && styles.optionChipActive,
+                  selectedProperty?.id === prop.id &&
+                    styles.optionChipActive,
                 ]}
                 onPress={() => setSelectedProperty(prop)}
               >
                 <Ionicons
                   name="business-outline"
                   size={14}
-                  color={selectedProperty?.id === prop.id ? colors.white : colors.textSecondary}
+                  color={
+                    selectedProperty?.id === prop.id
+                      ? colors.white
+                      : colors.textSecondary
+                  }
                 />
                 <Text
                   style={[
                     styles.optionText,
-                    selectedProperty?.id === prop.id && styles.optionTextActive,
+                    selectedProperty?.id === prop.id &&
+                      styles.optionTextActive,
                   ]}
                 >
                   {prop.name}
@@ -161,9 +177,17 @@ export function AddDuesScreen({ navigation }: any) {
           />
 
           <View style={styles.infoCard}>
-            <Ionicons name="information-circle-outline" size={20} color={colors.primary} />
+            <Ionicons
+              name="information-circle-outline"
+              size={20}
+              color={colors.primary}
+            />
             <Text style={styles.infoText}>
-              Invoice will be created for {new Date().toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}
+              Invoice will be created for{' '}
+              {new Date().toLocaleDateString('en-IN', {
+                month: 'long',
+                year: 'numeric',
+              })}
             </Text>
           </View>
 
@@ -171,6 +195,7 @@ export function AddDuesScreen({ navigation }: any) {
             title="Add Dues"
             onPress={handleSubmit}
             loading={loading}
+            disabled={!rentAmount}
             size="lg"
             style={{ marginTop: 24 }}
           />

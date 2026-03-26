@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod/v4';
 import { authenticate } from '../../middleware/authenticate.js';
 import prisma from '../../config/db.js';
+import { getPaginationParams, getPaginationMeta } from '../../utils/pagination.js';
 
 const router = Router();
 
@@ -17,12 +18,20 @@ const createExpenseSchema = z.object({
 
 router.get('/', async (req, res, next) => {
   try {
-    const expenses = await prisma.expense.findMany({
-      where: { property: { ownerId: req.user!.sub } },
-      include: { property: true },
-      orderBy: { createdAt: 'desc' },
-    });
-    res.json({ success: true, data: expenses });
+    const { skip, take, page, limit } = getPaginationParams(req.query);
+    const where = { property: { ownerId: req.user!.sub } };
+
+    const [expenses, total] = await Promise.all([
+      prisma.expense.findMany({
+        where,
+        skip,
+        take,
+        include: { property: true },
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.expense.count({ where }),
+    ]);
+    res.json({ success: true, data: expenses, meta: getPaginationMeta(total, page, limit) });
   } catch (err) { next(err); }
 });
 

@@ -14,6 +14,7 @@ import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../services/api';
+import type { Tenant, Invoice } from '../../types';
 
 const PAYMENT_METHODS = [
   { key: 'cash', label: 'Cash', icon: 'cash-outline' },
@@ -24,10 +25,10 @@ const PAYMENT_METHODS = [
 
 export function RecordPaymentScreen({ navigation }: any) {
   const { user } = useAuth();
-  const [tenants, setTenants] = useState<any[]>([]);
-  const [selectedTenant, setSelectedTenant] = useState<any>(null);
-  const [invoices, setInvoices] = useState<any[]>([]);
-  const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
+  const [tenants, setTenants] = useState<Tenant[]>([]);
+  const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [amount, setAmount] = useState('');
   const [method, setMethod] = useState<string>('cash');
   const [loading, setLoading] = useState(false);
@@ -40,17 +41,24 @@ export function RecordPaymentScreen({ navigation }: any) {
 
   useEffect(() => {
     if (selectedTenant && user) {
-      api.billing.getTenantInvoices(selectedTenant.id, user.id).then((res) => {
-        setInvoices(res.data);
-        setSelectedInvoice(null);
-      });
+      api.billing
+        .getTenantInvoices(selectedTenant.id, user.id)
+        .then((res) => {
+          setInvoices(res.data);
+          setSelectedInvoice(null);
+          setAmount('');
+        });
     }
   }, [selectedTenant]);
 
   useEffect(() => {
     if (selectedInvoice && !amount) {
-      const due = Number(selectedInvoice.total) - 
-        (selectedInvoice.payments?.reduce((sum: number, p: any) => sum + Number(p.amount), 0) || 0);
+      const paid =
+        selectedInvoice.payments?.reduce(
+          (sum, p) => sum + Number(p.amount),
+          0,
+        ) || 0;
+      const due = Number(selectedInvoice.total) - paid;
       setAmount(String(Math.round(due)));
     }
   }, [selectedInvoice]);
@@ -77,12 +85,15 @@ export function RecordPaymentScreen({ navigation }: any) {
     }
   };
 
-  const pendingInvoices = invoices.filter((inv) => 
-    inv.status !== 'paid' && inv.status !== 'waived'
+  const pendingInvoices = invoices.filter(
+    (inv) => inv.status !== 'paid' && inv.status !== 'waived',
   );
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+    >
       <Text style={styles.sectionTitle}>Select Tenant</Text>
       <View style={styles.optionsRow}>
         {tenants.map((tenant) => (
@@ -97,7 +108,11 @@ export function RecordPaymentScreen({ navigation }: any) {
             <Ionicons
               name="person-outline"
               size={14}
-              color={selectedTenant?.id === tenant.id ? colors.white : colors.textSecondary}
+              color={
+                selectedTenant?.id === tenant.id
+                  ? colors.white
+                  : colors.textSecondary
+              }
             />
             <Text
               style={[
@@ -115,7 +130,11 @@ export function RecordPaymentScreen({ navigation }: any) {
         <>
           <Text style={styles.label}>Select Invoice</Text>
           {pendingInvoices.map((inv) => {
-            const paid = inv.payments?.reduce((sum: number, p: any) => sum + Number(p.amount), 0) || 0;
+            const paid =
+              inv.payments?.reduce(
+                (sum, p) => sum + Number(p.amount),
+                0,
+              ) || 0;
             const due = Number(inv.total) - paid;
             const isSelected = selectedInvoice?.id === inv.id;
             return (
@@ -123,18 +142,29 @@ export function RecordPaymentScreen({ navigation }: any) {
                 key={inv.id}
                 onPress={() => setSelectedInvoice(inv)}
               >
-                <Card 
-                  style={isSelected ? styles.invoiceCardActive : styles.invoiceCard}
+                <Card
+                  style={
+                    isSelected
+                      ? styles.invoiceCardActive
+                      : styles.invoiceCard
+                  }
                 >
                   <View style={styles.invoiceRow}>
                     <View>
-                      <Text style={styles.invoiceNumber}>{inv.invoiceNumber}</Text>
+                      <Text style={styles.invoiceNumber}>
+                        {inv.invoiceNumber}
+                      </Text>
                       <Text style={styles.invoicePeriod}>
-                        {new Date(inv.periodStart).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}
+                        {new Date(inv.periodStart).toLocaleDateString(
+                          'en-IN',
+                          { month: 'short', year: 'numeric' },
+                        )}
                       </Text>
                     </View>
-                    <View style={{ alignItems: 'flex-end' }}>
-                      <Text style={styles.invoiceDue}>₹{Math.round(due).toLocaleString()} due</Text>
+                    <View style={{ alignItems: 'flex-end' as const }}>
+                      <Text style={styles.invoiceDue}>
+                        ₹{Math.round(due).toLocaleString()} due
+                      </Text>
                       <Text style={styles.invoiceStatus}>{inv.status}</Text>
                     </View>
                   </View>
@@ -147,6 +177,11 @@ export function RecordPaymentScreen({ navigation }: any) {
 
       {selectedTenant && pendingInvoices.length === 0 && (
         <Card variant="elevated" style={styles.emptyCard}>
+          <Ionicons
+            name="checkmark-circle"
+            size={32}
+            color={colors.secondary}
+          />
           <Text style={styles.emptyText}>No pending invoices</Text>
           <Text style={styles.emptySubtext}>
             All invoices are paid for this tenant
@@ -157,7 +192,7 @@ export function RecordPaymentScreen({ navigation }: any) {
       {selectedInvoice && (
         <>
           <Text style={styles.sectionTitle}>Payment Details</Text>
-          
+
           <Text style={styles.label}>Amount (₹)</Text>
           <TextInput
             style={styles.input}
@@ -182,7 +217,9 @@ export function RecordPaymentScreen({ navigation }: any) {
                 <Ionicons
                   name={m.icon as any}
                   size={20}
-                  color={method === m.key ? colors.white : colors.textSecondary}
+                  color={
+                    method === m.key ? colors.white : colors.textSecondary
+                  }
                 />
                 <Text
                   style={[
@@ -200,6 +237,7 @@ export function RecordPaymentScreen({ navigation }: any) {
             title="Record Payment"
             onPress={handleSubmit}
             loading={loading}
+            disabled={!amount}
             size="lg"
             style={{ marginTop: 24 }}
           />
@@ -258,14 +296,36 @@ const styles = StyleSheet.create({
   optionTextActive: { color: colors.white },
   invoiceCard: { marginBottom: 8 },
   invoiceCardActive: { borderColor: colors.primary, borderWidth: 2 },
-  invoiceRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  invoiceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   invoiceNumber: { fontSize: 15, fontWeight: '600', color: colors.text },
-  invoicePeriod: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
+  invoicePeriod: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
   invoiceDue: { fontSize: 14, fontWeight: '600', color: colors.warning },
-  invoiceStatus: { fontSize: 12, color: colors.textSecondary, textTransform: 'capitalize', marginTop: 2 },
-  emptyCard: { alignItems: 'center', padding: 24 },
-  emptyText: { fontSize: 15, fontWeight: '600', color: colors.textSecondary },
-  emptySubtext: { fontSize: 13, color: colors.textLight, marginTop: 4 },
+  invoiceStatus: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    textTransform: 'capitalize',
+    marginTop: 2,
+  },
+  emptyCard: { alignItems: 'center', padding: 24, marginTop: 12 },
+  emptyText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    marginTop: 8,
+  },
+  emptySubtext: {
+    fontSize: 13,
+    color: colors.textLight,
+    marginTop: 4,
+  },
   methodsGrid: { flexDirection: 'row', gap: 8 },
   methodChip: {
     flex: 1,
@@ -281,6 +341,10 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
     backgroundColor: colors.primary,
   },
-  methodLabel: { fontSize: 12, fontWeight: '600', color: colors.textSecondary },
+  methodLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
   methodLabelActive: { color: colors.white },
 });

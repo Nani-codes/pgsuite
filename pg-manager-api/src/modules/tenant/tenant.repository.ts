@@ -1,19 +1,30 @@
 import prisma from '../../config/db.js';
 import type { BedStatus, LeaseStatus } from '@prisma/client';
 import type { CreateTenantInput, UpdateTenantInput } from './tenant.schema.js';
+import { getPaginationParams, getPaginationMeta } from '../../utils/pagination.js';
 
 export class TenantRepository {
-  async findAllByOwner(ownerId: string) {
-    return prisma.tenant.findMany({
-      where: { ownerId, deletedAt: null },
-      include: {
-        leases: {
-          where: { status: 'active' as LeaseStatus },
-          include: { bed: { include: { room: true } }, property: true },
+  async findAllByOwner(ownerId: string, query: any = {}) {
+    const { skip, take, page, limit } = getPaginationParams(query);
+    const where = { ownerId, deletedAt: null };
+
+    const [data, total] = await Promise.all([
+      prisma.tenant.findMany({
+        where,
+        skip,
+        take,
+        include: {
+          leases: {
+            where: { status: 'active' as LeaseStatus },
+            include: { bed: { include: { room: true } }, property: true },
+          },
         },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.tenant.count({ where }),
+    ]);
+
+    return { data, meta: getPaginationMeta(total, page, limit) };
   }
 
   async findById(id: string, ownerId: string) {

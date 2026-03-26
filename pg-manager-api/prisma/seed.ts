@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, type Bed } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import 'dotenv/config';
 
@@ -71,7 +71,7 @@ async function main() {
     }),
   ]);
 
-  const beds = [];
+  const beds: Bed[] = [];
   for (const room of rooms) {
     const count = { single: 1, double: 2, triple: 3 }[room.roomType];
     for (let i = 0; i < count; i++) {
@@ -90,8 +90,21 @@ async function main() {
   console.log(`Created ${rooms.length} rooms with ${beds.length} beds`);
 
   const occupiedBed = beds.find(b => b.status === 'occupied')!;
-  const tenant = await prisma.tenant.create({
-    data: {
+  const tenant = await prisma.tenant.upsert({
+    where: {
+      ownerId_phone: {
+        ownerId: owner.id,
+        phone: '9123456789',
+      },
+    },
+    update: {
+      name: 'Priya Sharma',
+      email: 'priya@example.com',
+      emergencyContactName: 'Deepa Sharma',
+      emergencyContactPhone: '9111222333',
+      status: 'active',
+    },
+    create: {
       ownerId: owner.id,
       name: 'Priya Sharma',
       phone: '9123456789',

@@ -20,6 +20,10 @@ import noticeRouter from './modules/notice/notice.router.js';
 
 const app = express();
 
+// Allow proxy headers (X-Forwarded-For) so rate limiting uses real client IPs
+// when app is accessed through a reverse proxy/load balancer.
+app.set('trust proxy', 1);
+
 app.use(helmet());
 app.use(cors());
 app.use(express.json());

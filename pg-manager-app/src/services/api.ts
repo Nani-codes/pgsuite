@@ -17,6 +17,8 @@ const API_URL =
 
 const BASE_URL = `${API_URL}/v1`;
 
+console.log('[API DEBUG] API_URL =', API_URL, '| BASE_URL =', BASE_URL);
+
 const REQUEST_TIMEOUT = 15_000;
 
 interface ApiOptions {

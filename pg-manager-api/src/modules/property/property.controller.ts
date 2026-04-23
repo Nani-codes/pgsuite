@@ -8,6 +8,30 @@ function paramId(req: Request): string {
 }
 
 export class PropertyController {
+  async listPublic(req: Request, res: Response) {
+    const data = await service.listPublicProperties({
+      q: req.query.q as string | undefined,
+      city: req.query.city as string | undefined,
+      state: req.query.state as string | undefined,
+      pincode: req.query.pincode as string | undefined,
+      availableFor: req.query.availableFor as string | undefined,
+      hasImages: req.query.hasImages as string | undefined,
+      hasAbout: req.query.hasAbout as string | undefined,
+      lat: req.query.lat as string | undefined,
+      lng: req.query.lng as string | undefined,
+      radiusKm: req.query.radiusKm as string | undefined,
+      sort: req.query.sort as string | undefined,
+      limit: req.query.limit as string | undefined,
+      offset: req.query.offset as string | undefined,
+    });
+    res.json({ success: true, data });
+  }
+
+  async getPublic(req: Request, res: Response) {
+    const property = await service.getPublicProperty(paramId(req));
+    res.json({ success: true, data: property });
+  }
+
   async list(req: Request, res: Response) {
     const properties = await service.listProperties(req.user!.sub);
     res.json({ success: true, data: properties });

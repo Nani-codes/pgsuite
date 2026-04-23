@@ -36,6 +36,12 @@ export function AddPropertyScreen({ navigation }: any) {
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
+  const [state, setState] = useState('');
+  const [pincode, setPincode] = useState('');
+  const [availableFor, setAvailableFor] = useState('');
+  const [about, setAbout] = useState('');
+  const [imageUrlsInput, setImageUrlsInput] = useState('');
+  const [listPublicly, setListPublicly] = useState(false);
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -54,10 +60,21 @@ export function AddPropertyScreen({ navigation }: any) {
     }
     setLoading(true);
     try {
+      const imageUrls = imageUrlsInput
+        .split('\n')
+        .map((entry) => entry.trim())
+        .filter((entry) => entry.length > 0);
+
       await api.properties.create(user!.id, {
         name,
         address,
         city,
+        state: state || undefined,
+        pincode: pincode || undefined,
+        availableFor: availableFor || undefined,
+        about: about || undefined,
+        imageUrls,
+        listPublicly,
         amenities: selectedAmenities,
       });
       Alert.alert('Success', 'Property has been added', [
@@ -106,6 +123,80 @@ export function AddPropertyScreen({ navigation }: any) {
         onChangeText={setCity}
         placeholderTextColor={colors.textLight}
       />
+
+      <View style={styles.row}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.label}>State</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="e.g. Karnataka"
+            value={state}
+            onChangeText={setState}
+            placeholderTextColor={colors.textLight}
+          />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.label}>Pincode</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="e.g. 560001"
+            value={pincode}
+            onChangeText={setPincode}
+            placeholderTextColor={colors.textLight}
+            keyboardType="number-pad"
+          />
+        </View>
+      </View>
+
+      <Text style={styles.label}>Available For</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Any / Boys / Girls"
+        value={availableFor}
+        onChangeText={setAvailableFor}
+        placeholderTextColor={colors.textLight}
+      />
+
+      <Text style={styles.label}>About Property</Text>
+      <TextInput
+        style={[styles.input, styles.textArea]}
+        placeholder="Short description of your property"
+        value={about}
+        onChangeText={setAbout}
+        placeholderTextColor={colors.textLight}
+        multiline
+        numberOfLines={4}
+        textAlignVertical="top"
+      />
+
+      <Text style={styles.label}>Image URLs (one per line)</Text>
+      <TextInput
+        style={[styles.input, styles.textArea]}
+        placeholder="https://...image1.jpg"
+        value={imageUrlsInput}
+        onChangeText={setImageUrlsInput}
+        placeholderTextColor={colors.textLight}
+        multiline
+        numberOfLines={4}
+        textAlignVertical="top"
+      />
+
+      <TouchableOpacity
+        style={[styles.listToggle, listPublicly && styles.listToggleActive]}
+        onPress={() => setListPublicly((prev) => !prev)}
+      >
+        <Ionicons
+          name={listPublicly ? 'checkmark-circle' : 'ellipse-outline'}
+          size={20}
+          color={listPublicly ? colors.primary : colors.textSecondary}
+        />
+        <View style={{ flex: 1 }}>
+          <Text style={styles.listToggleTitle}>List this property publicly</Text>
+          <Text style={styles.listToggleSubtitle}>
+            If enabled, guests can discover this property in public browse.
+          </Text>
+        </View>
+      </TouchableOpacity>
 
       <Text style={[styles.label, { marginTop: 20 }]}>Amenities</Text>
       <View style={styles.amenitiesGrid}>
@@ -185,6 +276,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
+  row: {
+    flexDirection: 'row',
+    gap: 8,
+  },
   textArea: {
     minHeight: 100,
     paddingTop: 12,
@@ -216,4 +311,29 @@ const styles = StyleSheet.create({
     textTransform: 'capitalize',
   },
   amenityTextActive: { color: colors.white },
+  listToggle: {
+    marginTop: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    padding: 12,
+    backgroundColor: colors.surface,
+    flexDirection: 'row',
+    gap: 10,
+    alignItems: 'flex-start',
+  },
+  listToggleActive: {
+    borderColor: colors.primary,
+    backgroundColor: '#EEF4FF',
+  },
+  listToggleTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  listToggleSubtitle: {
+    marginTop: 3,
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
 });

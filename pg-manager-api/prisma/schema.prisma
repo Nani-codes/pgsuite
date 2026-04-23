@@ -76,6 +76,14 @@ enum PaymentStatus {
   refunded
 }
 
+enum InvoiceItemType {
+  rent
+  late_fee
+  utility
+  maintenance
+  other
+}
+
 enum ComplaintCategory {
   plumbing
   electrical
@@ -100,7 +108,10 @@ enum UpdatedBy {
 
 enum NotificationType {
   rent_due
+  rent_reminder
   payment_success
+  overdue_notice
+  late_fee_applied
   complaint_update
   notice
   otp
@@ -121,19 +132,23 @@ enum NotificationStatus {
 // ─── 1. Owners ──────────────────────────────────────────────────────
 
 model Owner {
-  id        String    @id @default(uuid()) @db.Uuid
-  name      String    @db.VarChar(255)
-  phone     String    @unique @db.VarChar(20)
-  email     String?   @db.VarChar(255)
-  plan      Plan      @default(free)
-  isActive  Boolean   @default(true) @map("is_active")
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-  deletedAt DateTime? @map("deleted_at")
+  id             String    @id @default(uuid()) @db.Uuid
+  name           String    @db.VarChar(255)
+  phone          String    @unique @db.VarChar(20)
+  email          String?   @db.VarChar(255)
+  plan           Plan      @default(free)
+  expoPushToken  String?   @map("expo_push_token") @db.VarChar(100)
+  isActive       Boolean   @default(true) @map("is_active")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  deletedAt      DateTime? @map("deleted_at")
 
-  properties Property[]
-  tenants    Tenant[]
-  notices    Notice[]
+  properties   Property[]
+  tenants      Tenant[]
+  notices      Notice[]
+  bookings     Booking[]
+  leads        Lead[]
+  duesPackages DuesPackage[]
 
   @@map("owners")
 }
@@ -141,26 +156,43 @@ model Owner {
 // ─── 2. Properties ──────────────────────────────────────────────────
 
 model Property {
-  id        String    @id @default(uuid()) @db.Uuid
-  ownerId   String    @map("owner_id") @db.Uuid
-  name      String    @db.VarChar(255)
-  address   String
-  city      String    @db.VarChar(100)
-  totalBeds Int       @default(0) @map("total_beds")
-  amenities Json?     @default("[]") @db.JsonB
-  isActive  Boolean   @default(true) @map("is_active")
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-  deletedAt DateTime? @map("deleted_at")
+  id                      String    @id @default(uuid()) @db.Uuid
+  ownerId                 String?   @map("owner_id") @db.Uuid
+  sourcePropertyId        String?   @unique @map("source_property_id") @db.VarChar(100)
+  sourcePgId              String?   @map("source_pg_id") @db.VarChar(100)
+  sourceEazypgId          String?   @map("source_eazypg_id") @db.VarChar(100)
+  sourcePgNumber          Int?      @map("source_pg_number")
+  name                    String    @db.VarChar(255)
+  address                 String
+  city                    String    @db.VarChar(100)
+  state                   String?   @db.VarChar(100)
+  pincode                 String?   @db.VarChar(20)
+  availableFor            String?   @map("available_for") @db.VarChar(100)
+  about                   String?   @db.Text
+  commonAmenitiesSummary  String?   @map("common_amenities_summary") @db.Text
+  serviceAmenitiesSummary String?   @map("service_amenities_summary") @db.Text
+  foodAmenitiesSummary    String?   @map("food_amenities_summary") @db.Text
+  imageUrls               Json?     @default("[]") @map("image_urls") @db.JsonB
+  latitude                Float?    @db.DoublePrecision
+  longitude               Float?    @db.DoublePrecision
+  totalBeds               Int       @default(0) @map("total_beds")
+  amenities               Json?     @default("[]") @db.JsonB
+  isActive                Boolean   @default(true) @map("is_active")
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @updatedAt @map("updated_at")
+  deletedAt               DateTime? @map("deleted_at")
 
-  owner      Owner       @relation(fields: [ownerId], references: [id])
-  floors     Floor[]
-  rooms      Room[]
-  leases     Lease[]
-  invoices   Invoice[]
-  complaints Complaint[]
-  notices    Notice[]
-  expenses   Expense[]
+  owner        Owner?         @relation(fields: [ownerId], references: [id])
+  floors       Floor[]
+  rooms        Room[]
+  leases       Lease[]
+  invoices     Invoice[]
+  complaints   Complaint[]
+  notices      Notice[]
+  expenses     Expense[]
+  bookings     Booking[]
+  leads        Lead[]
+  duesPackages DuesPackage[]
 
   @@index([ownerId])
   @@map("properties")
@@ -212,8 +244,9 @@ model Bed {
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
 
-  room   Room    @relation(fields: [roomId], references: [id])
-  leases Lease[]
+  room     Room      @relation(fields: [roomId], references: [id])
+  leases   Lease[]
+  bookings Booking[]
 
   @@index([status])
   @@index([roomId])
@@ -231,6 +264,7 @@ model Tenant {
   emergencyContactName  String?      @map("emergency_contact_name") @db.VarChar(255)
   emergencyContactPhone String?      @map("emergency_contact_phone") @db.VarChar(20)
   profilePhotoUrl       String?      @map("profile_photo_url")
+  expoPushToken         String?      @map("expo_push_token") @db.VarChar(100)
   status                TenantStatus @default(active)
   createdAt             DateTime     @default(now()) @map("created_at")
   updatedAt             DateTime     @updatedAt @map("updated_at")
@@ -246,6 +280,19 @@ model Tenant {
 
   @@unique([ownerId, phone])
   @@map("tenants")
+}
+
+model Prospect {
+  id        String    @id @default(uuid()) @db.Uuid
+  name      String    @db.VarChar(255)
+  phone     String    @unique @db.VarChar(20)
+  email     String?   @db.VarChar(255)
+  isActive  Boolean   @default(true) @map("is_active")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@map("prospects")
 }
 
 // ─── 7. Tenant Documents ────────────────────────────────────────────
@@ -272,6 +319,7 @@ model Lease {
   tenantId        String        @map("tenant_id") @db.Uuid
   bedId           String        @map("bed_id") @db.Uuid
   propertyId      String        @map("property_id") @db.Uuid
+  duesPackageId   String?       @map("dues_package_id") @db.Uuid
   rentAmount      Decimal       @map("rent_amount") @db.Decimal(10, 2)
   securityDeposit Decimal       @default(0) @map("security_deposit") @db.Decimal(10, 2)
   depositStatus   DepositStatus @default(pending) @map("deposit_status")
@@ -282,10 +330,12 @@ model Lease {
   createdAt       DateTime      @default(now()) @map("created_at")
   updatedAt       DateTime      @updatedAt @map("updated_at")
 
-  tenant   Tenant    @relation(fields: [tenantId], references: [id])
-  bed      Bed       @relation(fields: [bedId], references: [id])
-  property Property  @relation(fields: [propertyId], references: [id])
-  invoices Invoice[]
+  tenant        Tenant          @relation(fields: [tenantId], references: [id])
+  bed           Bed             @relation(fields: [bedId], references: [id])
+  property      Property        @relation(fields: [propertyId], references: [id])
+  duesPackage   DuesPackage?    @relation(fields: [duesPackageId], references: [id])
+  invoices      Invoice[]
+  lateFeePolicy LateFeePolicy?
 
   @@index([status, billingDay])
   @@index([tenantId])
@@ -297,19 +347,20 @@ model Lease {
 // ─── 9. Invoices ────────────────────────────────────────────────────
 
 model Invoice {
-  id            String        @id @default(uuid()) @db.Uuid
-  leaseId       String        @map("lease_id") @db.Uuid
-  tenantId      String        @map("tenant_id") @db.Uuid
-  propertyId    String        @map("property_id") @db.Uuid
-  invoiceNumber String        @map("invoice_number") @db.VarChar(50)
-  periodStart   DateTime      @map("period_start") @db.Date
-  periodEnd     DateTime      @map("period_end") @db.Date
-  dueDate       DateTime      @map("due_date") @db.Date
-  subtotal      Decimal       @db.Decimal(10, 2)
-  total         Decimal       @db.Decimal(10, 2)
-  status        InvoiceStatus @default(draft)
-  createdAt     DateTime      @default(now()) @map("created_at")
-  updatedAt     DateTime      @updatedAt @map("updated_at")
+  id             String        @id @default(uuid()) @db.Uuid
+  leaseId        String        @map("lease_id") @db.Uuid
+  tenantId       String        @map("tenant_id") @db.Uuid
+  propertyId     String        @map("property_id") @db.Uuid
+  invoiceNumber  String        @map("invoice_number") @db.VarChar(50)
+  periodStart    DateTime      @map("period_start") @db.Date
+  periodEnd      DateTime      @map("period_end") @db.Date
+  dueDate        DateTime      @map("due_date") @db.Date
+  subtotal       Decimal       @db.Decimal(10, 2)
+  total          Decimal       @db.Decimal(10, 2)
+  status         InvoiceStatus @default(draft)
+  idempotencyKey String?       @unique @map("idempotency_key") @db.VarChar(100)
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
 
   lease    Lease         @relation(fields: [leaseId], references: [id])
   tenant   Tenant        @relation(fields: [tenantId], references: [id])
@@ -326,11 +377,12 @@ model Invoice {
 // ─── 10. Invoice Items ──────────────────────────────────────────────
 
 model InvoiceItem {
-  id          String   @id @default(uuid()) @db.Uuid
-  invoiceId   String   @map("invoice_id") @db.Uuid
-  description String   @db.VarChar(255)
-  amount      Decimal  @db.Decimal(10, 2)
-  createdAt   DateTime @default(now()) @map("created_at")
+  id          String          @id @default(uuid()) @db.Uuid
+  invoiceId   String          @map("invoice_id") @db.Uuid
+  type        InvoiceItemType @default(other)
+  description String          @db.VarChar(255)
+  amount      Decimal         @db.Decimal(10, 2)
+  createdAt   DateTime        @default(now()) @map("created_at")
 
   invoice Invoice @relation(fields: [invoiceId], references: [id])
 
@@ -347,13 +399,17 @@ model Payment {
   amount             Decimal       @db.Decimal(10, 2)
   method             PaymentMethod
   status             PaymentStatus @default(pending)
+  referenceNo        String?       @map("reference_no") @db.VarChar(100)
+  collectedBy        String?       @map("collected_by") @db.VarChar(255)
+  idempotencyKey     String?       @unique @map("idempotency_key") @db.VarChar(100)
   razorpayPaymentId  String?       @map("razorpay_payment_id") @db.VarChar(100)
   razorpayOrderId    String?       @map("razorpay_order_id") @db.VarChar(100)
   paidAt             DateTime?     @map("paid_at")
   createdAt          DateTime      @default(now()) @map("created_at")
 
-  invoice Invoice @relation(fields: [invoiceId], references: [id])
-  tenant  Tenant  @relation(fields: [tenantId], references: [id])
+  invoice Invoice  @relation(fields: [invoiceId], references: [id])
+  tenant  Tenant   @relation(fields: [tenantId], references: [id])
+  receipt Receipt?
 
   @@index([razorpayPaymentId])
   @@index([invoiceId])
@@ -436,7 +492,40 @@ model Notification {
   @@map("notifications")
 }
 
-// ─── 16. Expenses ────────────────────────────────────────────────────
+// ─── 16. Late Fee Policies ──────────────────────────────────────────
+
+model LateFeePolicy {
+  id             String   @id @default(uuid()) @db.Uuid
+  leaseId        String   @unique @map("lease_id") @db.Uuid
+  graceDays      Int      @default(5) @map("grace_days")
+  feeType        String   @default("fixed") @db.VarChar(20) // "fixed" or "percentage"
+  feeAmount      Decimal  @db.Decimal(10, 2)
+  maxFee         Decimal? @map("max_fee") @db.Decimal(10, 2)
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  lease Lease @relation(fields: [leaseId], references: [id])
+
+  @@map("late_fee_policies")
+}
+
+// ─── 17. Receipts ──────────────────────────────────────────────────
+
+model Receipt {
+  id            String   @id @default(uuid()) @db.Uuid
+  paymentId     String   @unique @map("payment_id") @db.Uuid
+  receiptNumber String   @unique @map("receipt_number") @db.VarChar(50)
+  amount        Decimal  @db.Decimal(10, 2)
+  issuedAt      DateTime @default(now()) @map("issued_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  payment Payment @relation(fields: [paymentId], references: [id])
+
+  @@map("receipts")
+}
+
+// ─── 18. Expenses ────────────────────────────────────────────────────
 
 model Expense {
   id          String   @id @default(uuid()) @db.Uuid
@@ -451,4 +540,129 @@ model Expense {
 
   @@index([propertyId, date])
   @@map("expenses")
+}
+
+// ─── 19. Bookings ────────────────────────────────────────────────────
+
+enum BookingStatus {
+  pending
+  confirmed
+  cancelled
+  converted
+}
+
+model Booking {
+  id              String        @id @default(uuid()) @db.Uuid
+  ownerId         String        @map("owner_id") @db.Uuid
+  propertyId      String        @map("property_id") @db.Uuid
+  bedId           String?       @map("bed_id") @db.Uuid
+  name            String        @db.VarChar(255)
+  phone           String        @db.VarChar(20)
+  email           String?       @db.VarChar(255)
+  expectedCheckIn DateTime      @map("expected_check_in") @db.Date
+  rentAmount      Decimal       @map("rent_amount") @db.Decimal(10, 2)
+  advanceAmount   Decimal       @default(0) @map("advance_amount") @db.Decimal(10, 2)
+  advancePaid     Boolean       @default(false) @map("advance_paid")
+  status          BookingStatus @default(pending)
+  notes           String?       @db.Text
+  convertedTenantId String?     @map("converted_tenant_id") @db.Uuid
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  owner    Owner    @relation(fields: [ownerId], references: [id])
+  property Property @relation(fields: [propertyId], references: [id])
+  bed      Bed?     @relation(fields: [bedId], references: [id])
+
+  @@index([ownerId, status])
+  @@index([propertyId])
+  @@map("bookings")
+}
+
+// ─── 20. Leads ───────────────────────────────────────────────────────
+
+enum LeadSource {
+  walk_in
+  online
+  referral
+  social_media
+  other
+}
+
+enum LeadStatus {
+  new_lead
+  contacted
+  interested
+  visit_scheduled
+  visit_done
+  converted
+  lost
+}
+
+model Lead {
+  id            String     @id @default(uuid()) @db.Uuid
+  ownerId       String     @map("owner_id") @db.Uuid
+  propertyId    String?    @map("property_id") @db.Uuid
+  name          String     @db.VarChar(255)
+  phone         String     @db.VarChar(20)
+  email         String?    @db.VarChar(255)
+  source        LeadSource @default(other)
+  status        LeadStatus @default(new_lead)
+  budget        Decimal?   @db.Decimal(10, 2)
+  preferredRoomType String? @map("preferred_room_type") @db.VarChar(50)
+  followUpDate  DateTime?  @map("follow_up_date") @db.Date
+  notes         String?    @db.Text
+  convertedBookingId String? @map("converted_booking_id") @db.Uuid
+  createdAt     DateTime   @default(now()) @map("created_at")
+  updatedAt     DateTime   @updatedAt @map("updated_at")
+
+  owner    Owner     @relation(fields: [ownerId], references: [id])
+  property Property? @relation(fields: [propertyId], references: [id])
+
+  @@index([ownerId, status])
+  @@index([propertyId])
+  @@map("leads")
+}
+
+// ─── 21. Dues Packages ──────────────────────────────────────────────
+
+enum DuesFrequency {
+  monthly
+  quarterly
+  half_yearly
+  yearly
+}
+
+model DuesPackage {
+  id            String        @id @default(uuid()) @db.Uuid
+  ownerId       String        @map("owner_id") @db.Uuid
+  propertyId    String?       @map("property_id") @db.Uuid
+  name          String        @db.VarChar(255)
+  frequency     DuesFrequency @default(monthly)
+  totalAmount   Decimal       @map("total_amount") @db.Decimal(10, 2)
+  autoGenerate  Boolean       @default(true) @map("auto_generate")
+  isActive      Boolean       @default(true) @map("is_active")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  owner    Owner              @relation(fields: [ownerId], references: [id])
+  property Property?          @relation(fields: [propertyId], references: [id])
+  items    DuesPackageItem[]
+  leases   Lease[]
+
+  @@index([ownerId])
+  @@map("dues_packages")
+}
+
+model DuesPackageItem {
+  id            String          @id @default(uuid()) @db.Uuid
+  packageId     String          @map("package_id") @db.Uuid
+  type          InvoiceItemType @default(other)
+  description   String          @db.VarChar(255)
+  amount        Decimal         @db.Decimal(10, 2)
+  createdAt     DateTime        @default(now()) @map("created_at")
+
+  package DuesPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+
+  @@index([packageId])
+  @@map("dues_package_items")
 }

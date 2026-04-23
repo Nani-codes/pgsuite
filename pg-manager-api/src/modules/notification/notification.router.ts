@@ -2,6 +2,8 @@ import { Router } from 'express';
 import { authenticate } from '../../middleware/authenticate.js';
 import prisma from '../../config/db.js';
 import { z } from 'zod/v4';
+import { sendPushNotification } from '../../config/pushService.js';
+import logger from '../../utils/logger.js';
 
 const router = Router();
 
@@ -43,6 +45,7 @@ router.post('/', async (req, res, next) => {
     // Verify tenant belongs to this owner
     const tenant = await prisma.tenant.findFirst({
       where: { id: data.tenantId, ownerId: req.user!.sub },
+      select: { id: true, name: true, expoPushToken: true },
     });
 
     if (!tenant) {
@@ -64,7 +67,60 @@ router.post('/', async (req, res, next) => {
       },
     });
 
+    // Send real push notification if tenant has a push token
+    if (tenant.expoPushToken && data.channel === 'push') {
+      try {
+        const title = data.type.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+        const pushed = await sendPushNotification(
+          tenant.expoPushToken,
+          title,
+          data.message,
+          { type: data.type, notificationId: notification.id },
+        );
+        if (pushed) {
+          await prisma.notification.update({
+            where: { id: notification.id },
+            data: { status: 'delivered' },
+          });
+        }
+      } catch (pushErr) {
+        logger.error({ pushErr }, '[Notification] Push delivery failed');
+      }
+    }
+
     res.status(201).json({ success: true, data: notification });
+  } catch (err) { next(err); }
+});
+
+// ─── Register Push Token ────────────────────────────────────────────
+
+const registerTokenSchema = z.object({
+  token: z.string().min(1),
+});
+
+/**
+ * POST /v1/notifications/register-token
+ * Stores the Expo Push Token for the authenticated user (tenant or owner).
+ */
+router.post('/register-token', async (req, res, next) => {
+  try {
+    const { token } = registerTokenSchema.parse(req.body);
+    const { sub: userId, role } = req.user!;
+
+    if (role === 'tenant') {
+      await prisma.tenant.update({
+        where: { id: userId },
+        data: { expoPushToken: token },
+      });
+    } else if (role === 'owner') {
+      await prisma.owner.update({
+        where: { id: userId },
+        data: { expoPushToken: token },
+      });
+    }
+
+    logger.info({ userId, role, tokenPrefix: token.slice(0, 20) }, '[Push] Token registered');
+    res.json({ success: true, message: 'Push token registered' });
   } catch (err) { next(err); }
 });
 

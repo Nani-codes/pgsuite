@@ -10,9 +10,24 @@ import {
   PlusJakartaSans_600SemiBold,
   PlusJakartaSans_700Bold,
 } from '@expo-google-fonts/plus-jakarta-sans';
-import { AuthProvider } from './src/context/AuthContext';
+import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
+import { usePushNotifications } from './src/hooks/usePushNotifications';
+
+function AppWithPush() {
+  const { user } = useAuth();
+
+  // Register for push notifications when authenticated
+  usePushNotifications(!!user);
+
+  return (
+    <>
+      <StatusBar style="auto" />
+      <AppNavigator />
+    </>
+  );
+}
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -31,8 +46,7 @@ export default function App() {
       <SafeAreaProvider>
       <ErrorBoundary>
         <AuthProvider>
-          <StatusBar style="auto" />
-          <AppNavigator />
+          <AppWithPush />
         </AuthProvider>
       </ErrorBoundary>
     </SafeAreaProvider>

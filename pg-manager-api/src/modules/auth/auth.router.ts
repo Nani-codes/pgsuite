@@ -27,6 +27,13 @@ const registerSchema = z.object({
   email: z.email().optional(),
 });
 
+const completeOnboardingSchema = z.object({
+  phone: z.string().min(10).max(20),
+  name: z.string().min(1).max(255),
+  email: z.email().optional(),
+  intent: z.enum(['owner', 'explorer']),
+});
+
 /**
  * POST /v1/auth/send-otp
  * Sends OTP to any phone number. Works for both existing users and new sign-ups.
@@ -112,6 +119,19 @@ router.post('/verify-otp', authRateLimiter, async (req, res, next) => {
       return;
     }
 
+    const explorer = await prisma.prospect.findFirst({ where: { phone, deletedAt: null } });
+    if (explorer) {
+      res.json({
+        success: true,
+        data: {
+          isNewUser: false,
+          accessToken: generateToken({ sub: explorer.id, role: 'explorer' }),
+          user: { id: explorer.id, name: explorer.name, role: 'explorer' },
+        },
+      });
+      return;
+    }
+
     // ─── New user — OTP verified but no account exists ────────────
     res.json({
       success: true,
@@ -156,6 +176,69 @@ router.post('/register', async (req, res, next) => {
 });
 
 /**
+ * POST /v1/auth/complete-onboarding
+ * Completes onboarding as owner or explorer.
+ */
+router.post('/complete-onboarding', async (req, res, next) => {
+  try {
+    const parsed = completeOnboardingSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: 'Invalid onboarding payload' },
+      });
+      return;
+    }
+    const { phone, name, email, intent } = parsed.data;
+
+    if (intent === 'owner') {
+      const existing = await prisma.owner.findFirst({ where: { phone, deletedAt: null } });
+      if (existing) {
+        res.status(409).json({
+          success: false,
+          error: { code: 'ALREADY_EXISTS', message: 'An account with this phone already exists' },
+        });
+        return;
+      }
+
+      const owner = await prisma.owner.create({
+        data: { name, phone, email },
+      });
+
+      res.status(201).json({
+        success: true,
+        data: {
+          accessToken: generateToken({ sub: owner.id, role: 'owner' }),
+          user: { id: owner.id, name: owner.name, role: 'owner' },
+        },
+      });
+      return;
+    }
+
+    const existingProspect = await prisma.prospect.findFirst({ where: { phone, deletedAt: null } });
+    if (existingProspect) {
+      res.status(409).json({
+        success: false,
+        error: { code: 'ALREADY_EXISTS', message: 'An account with this phone already exists' },
+      });
+      return;
+    }
+
+    const prospect = await prisma.prospect.create({
+      data: { name, phone, email },
+    });
+
+    res.status(201).json({
+      success: true,
+      data: {
+        accessToken: generateToken({ sub: prospect.id, role: 'explorer' }),
+        user: { id: prospect.id, name: prospect.name, role: 'explorer' },
+      },
+    });
+  } catch (err) { next(err); }
+});
+
+/**
  * GET /v1/auth/me
  * Validates the current session and returns fresh user data.
  */
@@ -191,6 +274,22 @@ router.get('/me', authenticate, async (req, res, next) => {
       res.json({
         success: true,
         data: { id: tenant.id, name: tenant.name, phone: tenant.phone, email: tenant.email, role: 'tenant' },
+      });
+      return;
+    }
+
+    if (role === 'explorer') {
+      const explorer = await prisma.prospect.findFirst({ where: { id: userId, deletedAt: null } });
+      if (!explorer || !explorer.isActive) {
+        res.status(401).json({
+          success: false,
+          error: { code: 'UNAUTHORIZED', message: 'Invalid session' },
+        });
+        return;
+      }
+      res.json({
+        success: true,
+        data: { id: explorer.id, name: explorer.name, phone: explorer.phone, email: explorer.email, role: 'explorer' },
       });
       return;
     }

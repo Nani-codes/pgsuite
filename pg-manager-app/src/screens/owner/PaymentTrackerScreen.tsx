@@ -8,6 +8,7 @@ import {
   TextInput,
   TouchableOpacity,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -93,7 +94,15 @@ function subtitle(invoice: Invoice): string {
   return `${inv} • Due since ${formatShortDate(invoice.dueDate)}`;
 }
 
-function PaymentItem({ invoice, index }: { invoice: Invoice; index: number }) {
+function PaymentItem({
+  invoice,
+  index,
+  onSendReminder,
+}: {
+  invoice: Invoice;
+  index: number;
+  onSendReminder?: (invoice: Invoice) => void;
+}) {
   const paid = isPaid(invoice);
   const amount = displayAmount(invoice);
   const label = statusLabel(invoice);
@@ -128,6 +137,16 @@ function PaymentItem({ invoice, index }: { invoice: Invoice; index: number }) {
             {label}
           </Text>
         </View>
+
+        {!paid && onSendReminder && (
+          <TouchableOpacity
+            style={styles.reminderBtn}
+            onPress={() => onSendReminder(invoice)}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="notifications-outline" size={18} color={colors.warning} />
+          </TouchableOpacity>
+        )}
       </View>
     </Animated.View>
   );
@@ -174,11 +193,36 @@ export function PaymentTrackerScreen({ navigation }: any) {
 
   const stats = useMemo(() => computeStats(invoices), [invoices]);
 
+  const handleSendReminder = useCallback(async (invoice: Invoice) => {
+    if (!user || !invoice.tenant) return;
+    Alert.alert(
+      'Send Reminder',
+      `Send a payment reminder to ${invoice.tenant.name} for ${invoice.invoiceNumber}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Send',
+          onPress: async () => {
+            try {
+              await api.billing.sendReminder(user.id, {
+                tenantId: (invoice as any).tenantId || '',
+                invoiceId: invoice.id,
+              });
+              Alert.alert('Sent', 'Reminder sent successfully.');
+            } catch {
+              Alert.alert('Failed', 'Could not send reminder.');
+            }
+          },
+        },
+      ],
+    );
+  }, [user]);
+
   const renderItem = useCallback(
     ({ item, index }: { item: Invoice; index: number }) => (
-      <PaymentItem invoice={item} index={index} />
+      <PaymentItem invoice={item} index={index} onSendReminder={handleSendReminder} />
     ),
-    [],
+    [handleSendReminder],
   );
 
   if (loading) {
@@ -210,6 +254,24 @@ export function PaymentTrackerScreen({ navigation }: any) {
             <Animated.View entering={FadeInDown.springify()} style={styles.header}>
               <Text style={styles.headerLabel}>Financial Overview</Text>
               <Text style={styles.headerTitle}>Payment Tracker</Text>
+            </Animated.View>
+
+            {/* Quick Actions */}
+            <Animated.View entering={FadeInDown.delay(60).springify()} style={styles.quickActionsRow}>
+              <TouchableOpacity
+                style={styles.quickActionBtn}
+                onPress={() => navigation.navigate('AgingReport')}
+              >
+                <Ionicons name="timer-outline" size={18} color={colors.primary} />
+                <Text style={styles.quickActionText}>Aging Report</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.quickActionBtn}
+                onPress={() => navigation.navigate('Reconciliation')}
+              >
+                <Ionicons name="bar-chart-outline" size={18} color={colors.primary} />
+                <Text style={styles.quickActionText}>Reconciliation</Text>
+              </TouchableOpacity>
             </Animated.View>
 
             {/* Stats Grid */}
@@ -438,6 +500,33 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textLight,
     textAlign: 'center',
+  },
+
+  quickActionsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 16,
+  },
+  quickActionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: colors.primaryLight,
+  },
+  quickActionText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  reminderBtn: {
+    marginLeft: 8,
+    padding: 6,
+    borderRadius: 20,
+    backgroundColor: colors.warningLight,
   },
 
   fab: {

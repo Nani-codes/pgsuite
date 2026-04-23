@@ -13,6 +13,10 @@ const envSchema = z.object({
   TWILIO_AUTH_TOKEN: z.string().min(1),
   TWILIO_VERIFY_SID: z.string().min(1),
   TWILIO_DEV_OTP: z.string().default('false'),
+  // Razorpay — set RAZORPAY_DEV_BYPASS=true to skip real gateway in dev
+  RAZORPAY_KEY_ID: z.string().default('rzp_test_placeholder'),
+  RAZORPAY_KEY_SECRET: z.string().default('placeholder_secret'),
+  RAZORPAY_DEV_BYPASS: z.string().default('false'),
 });
 
 const parsed = envSchema.safeParse(process.env);

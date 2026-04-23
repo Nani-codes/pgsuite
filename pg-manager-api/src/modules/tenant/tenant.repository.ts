@@ -6,7 +6,11 @@ import { getPaginationParams, getPaginationMeta } from '../../utils/pagination.j
 export class TenantRepository {
   async findAllByOwner(ownerId: string, query: any = {}) {
     const { skip, take, page, limit } = getPaginationParams(query);
-    const where = { ownerId, deletedAt: null };
+    const status = query.status as string | undefined;
+    const where: Record<string, unknown> = { ownerId, deletedAt: null };
+    if (status && ['active', 'checked_out', 'suspended'].includes(status)) {
+      where.status = status;
+    }
 
     const [data, total] = await Promise.all([
       prisma.tenant.findMany({

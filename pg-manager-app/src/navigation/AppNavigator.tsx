@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { LoginScreen } from '../screens/auth/LoginScreen';
 import { OwnerTabs } from './OwnerTabs';
 import { TenantTabs } from './TenantTabs';
+import { ExplorerStack } from './ExplorerStack';
 import { colors } from '../theme/colors';
 
 const Stack = createNativeStackNavigator();
@@ -33,11 +34,16 @@ export function AppNavigator() {
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {!user ? (
-          <Stack.Screen name="Login" component={LoginScreen} />
+          <>
+            <Stack.Screen name="Login" component={LoginScreen} />
+            <Stack.Screen name="GuestExplore" component={ExplorerStack} />
+          </>
         ) : user.role === 'owner' ? (
           <Stack.Screen name="OwnerApp" component={OwnerTabs} />
-        ) : (
+        ) : user.role === 'tenant' ? (
           <Stack.Screen name="TenantApp" component={TenantTabs} />
+        ) : (
+          <Stack.Screen name="ExplorerApp" component={ExplorerStack} />
         )}
       </Stack.Navigator>
     </NavigationContainer>

@@ -8,7 +8,7 @@ import React, {
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { api, setAuthToken } from '../services/api';
-import type { User } from '../types';
+import type { User, UserRole } from '../types';
 
 const AUTH_KEY = 'pg_auth';
 
@@ -23,7 +23,7 @@ interface AuthContextType {
   isLoading: boolean;
   isHydrating: boolean;
   login: (phone: string, otp: string) => Promise<{ isNewUser?: boolean; phone?: string } | void>;
-  register: (phone: string, name: string, email?: string) => Promise<void>;
+  register: (phone: string, name: string, email: string | undefined, intent: 'owner' | 'explorer') => Promise<void>;
   logout: () => void;
 }
 
@@ -90,7 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const freshUser: User = {
             id: res.data.id,
             name: res.data.name,
-            role: res.data.role as 'owner' | 'tenant',
+            role: res.data.role as UserRole,
           };
           setUser(freshUser);
           setToken(state.token);
@@ -124,10 +124,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const register = useCallback(async (phone: string, name: string, email?: string) => {
+  const register = useCallback(async (phone: string, name: string, email: string | undefined, intent: 'owner' | 'explorer') => {
     setIsLoading(true);
     try {
-      const res = await api.auth.register(phone, name, email);
+      const res = await api.auth.completeOnboarding({ phone, name, email, intent });
       const authState: AuthState = {
         user: res.data.user,
         token: res.data.accessToken,

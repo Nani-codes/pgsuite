@@ -120,7 +120,7 @@ router.patch('/:id/status', async (req, res, next) => {
       prisma.complaintUpdate.create({
         data: {
           complaintId,
-          updatedBy: req.user!.role,
+          updatedBy: req.user!.role === 'owner' ? 'owner' : 'tenant',
           message: message || `Status changed to ${status}`,
           status,
         },

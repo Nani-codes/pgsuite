@@ -8,6 +8,9 @@ import { createPropertySchema, updatePropertySchema, createRoomSchema, createFlo
 const router = Router();
 const ctrl = new PropertyController();
 
+router.get('/public', (req, res, next) => { ctrl.listPublic(req, res).catch(next); });
+router.get('/public/:id', (req, res, next) => { ctrl.getPublic(req, res).catch(next); });
+
 router.use(authenticate);
 router.use(authorize('owner'));
 

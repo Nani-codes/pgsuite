@@ -48,7 +48,7 @@ export function ComplaintsScreen() {
   const loadData = async () => {
     if (!user) return;
     try {
-      const res = await api.complaints.list(user.id, user.role);
+      const res = await api.complaints.list(user.id, 'owner');
       setComplaints(res.data);
     } catch (err) {
       console.error(err);

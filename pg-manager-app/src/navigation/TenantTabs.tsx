@@ -6,6 +6,7 @@ import { colors } from '../theme/colors';
 
 import { HomeScreen } from '../screens/tenant/HomeScreen';
 import { PayRentScreen } from '../screens/tenant/PayRentScreen';
+import { ReceiptScreen } from '../screens/shared/ReceiptScreen';
 import { TenantDocumentsScreen } from '../screens/tenant/TenantDocumentsScreen';
 import { ComplaintsListScreen } from '../screens/tenant/ComplaintsListScreen';
 import { TenantComplaintsScreen } from '../screens/tenant/TenantComplaintsScreen';
@@ -39,6 +40,11 @@ function HomeStack() {
         name="Documents"
         component={TenantDocumentsScreen}
         options={{ title: 'Documents' }}
+      />
+      <Stack.Screen
+        name="Receipt"
+        component={ReceiptScreen}
+        options={{ title: 'Receipt' }}
       />
     </Stack.Navigator>
   );

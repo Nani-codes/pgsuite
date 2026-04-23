@@ -7,6 +7,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  TouchableOpacity,
 } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,7 +16,7 @@ import { Button } from '../../components/Button';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../services/api';
 
-export function LoginScreen() {
+export function LoginScreen({ navigation }: any) {
   const { login, register, isLoading } = useAuth();
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
@@ -23,6 +24,7 @@ export function LoginScreen() {
   const [sending, setSending] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [onboardingIntent, setOnboardingIntent] = useState<'owner' | 'explorer'>('explorer');
 
   const handleSendOtp = async () => {
     if (phone.length < 10) {
@@ -57,7 +59,7 @@ export function LoginScreen() {
       return;
     }
     try {
-      await register(phone, name.trim(), email.trim() || undefined);
+      await register(phone, name.trim(), email.trim() || undefined, onboardingIntent);
     } catch (err: any) {
       Toast.show({ type: 'error', text1: 'Registration Failed', text2: err.message || 'Registration failed' });
     }
@@ -110,6 +112,13 @@ export function LoginScreen() {
                 size="lg"
                 style={{ marginTop: 8 }}
               />
+              <Button
+                title="Browse Properties as Guest"
+                onPress={() => navigation.navigate('GuestExplore')}
+                variant="outline"
+                size="sm"
+                style={{ marginTop: 8 }}
+              />
 
             </>
           ) : step === 'otp' ? (
@@ -152,8 +161,31 @@ export function LoginScreen() {
             <>
               <Text style={styles.formTitle}>Complete Profile</Text>
               <Text style={styles.formSubtitle}>
-                Looks like you're new! Let's get you set up as an Owner.
+                Looks like you're new! Tell us how you'd like to continue.
               </Text>
+
+              <View style={styles.intentRow}>
+                <TouchableOpacity
+                  style={[
+                    styles.intentCard,
+                    onboardingIntent === 'explorer' && styles.intentCardActive,
+                  ]}
+                  onPress={() => setOnboardingIntent('explorer')}
+                >
+                  <Text style={styles.intentTitle}>Explore as tenant</Text>
+                  <Text style={styles.intentSubtitle}>Browse properties before joining</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.intentCard,
+                    onboardingIntent === 'owner' && styles.intentCardActive,
+                  ]}
+                  onPress={() => setOnboardingIntent('owner')}
+                >
+                  <Text style={styles.intentTitle}>I am an owner</Text>
+                  <Text style={styles.intentSubtitle}>Manage properties and tenants</Text>
+                </TouchableOpacity>
+              </View>
               
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Full Name</Text>
@@ -180,7 +212,7 @@ export function LoginScreen() {
               </View>
 
               <Button
-                title="Create Account"
+                title={onboardingIntent === 'owner' ? 'Create Owner Account' : 'Start Exploring'}
                 onPress={handleRegister}
                 loading={isLoading}
                 size="lg"
@@ -307,6 +339,31 @@ const styles = StyleSheet.create({
     color: colors.text,
     borderWidth: 1,
     borderColor: colors.border,
+  },
+  intentRow: {
+    gap: 10,
+    marginBottom: 16,
+  },
+  intentCard: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    padding: 12,
+    backgroundColor: colors.surfaceAlt,
+  },
+  intentCardActive: {
+    borderColor: colors.primary,
+    backgroundColor: '#EEF4FF',
+  },
+  intentTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  intentSubtitle: {
+    fontSize: 12,
+    marginTop: 2,
+    color: colors.textSecondary,
   },
   hint: {
     fontSize: 12,

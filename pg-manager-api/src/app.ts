@@ -17,6 +17,10 @@ import notificationRouter from './modules/notification/notification.router.js';
 import analyticsRouter from './modules/analytics/analytics.router.js';
 import ownerRouter from './modules/owner/owner.router.js';
 import noticeRouter from './modules/notice/notice.router.js';
+import bookingRouter from './modules/booking/booking.router.js';
+import leadRouter from './modules/lead/lead.router.js';
+import duesPackageRouter from './modules/dues-package/dues-package.router.js';
+import { startScheduler } from './modules/scheduler/scheduler.js';
 
 const app = express();
 
@@ -43,12 +47,17 @@ app.use('/v1/notifications', notificationRouter);
 app.use('/v1/analytics', analyticsRouter);
 app.use('/v1/owners', ownerRouter);
 app.use('/v1/notices', noticeRouter);
+app.use('/v1/bookings', bookingRouter);
+app.use('/v1/leads', leadRouter);
+app.use('/v1/dues-packages', duesPackageRouter);
 
 app.use(errorHandler);
 
 if (process.env.NODE_ENV !== 'test') {
-  app.listen(env.PORT, () => {
-    logger.info(`Server running on port ${env.PORT} in ${env.NODE_ENV} mode`);
+  const host = '0.0.0.0';
+  app.listen(env.PORT, host, () => {
+    logger.info(`Server running on http://${host}:${env.PORT} in ${env.NODE_ENV} mode`);
+    startScheduler();
   });
 }
 

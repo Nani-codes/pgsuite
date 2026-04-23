@@ -17,7 +17,14 @@ import { EditTenantScreen } from '../screens/owner/EditTenantScreen';
 import { ExpenseHistoryScreen } from '../screens/owner/ExpenseHistoryScreen';
 import { ComplaintsScreen } from '../screens/owner/ComplaintsScreen';
 import { PaymentTrackerScreen } from '../screens/owner/PaymentTrackerScreen';
+import { AgingReportScreen } from '../screens/owner/AgingReportScreen';
+import { ReconciliationScreen } from '../screens/owner/ReconciliationScreen';
+import { ReceiptScreen } from '../screens/shared/ReceiptScreen';
 import { OwnerProfileScreen } from '../screens/owner/ProfileScreen';
+import { BookingsScreen } from '../screens/owner/BookingsScreen';
+import { LeadsScreen } from '../screens/owner/LeadsScreen';
+import { DuesPackagesScreen } from '../screens/owner/DuesPackagesScreen';
+import { OldTenantsScreen } from '../screens/owner/OldTenantsScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -72,6 +79,11 @@ function DashboardStack() {
         component={AddTenantScreen}
         options={{ title: 'Add Tenant' }}
       />
+      <Stack.Screen
+        name="DuesPackages"
+        component={DuesPackagesScreen}
+        options={{ title: 'Dues Packages' }}
+      />
     </Stack.Navigator>
   );
 }
@@ -99,6 +111,21 @@ function TenantsStack() {
         component={EditTenantScreen}
         options={{ title: 'Edit Tenant' }}
       />
+      <Stack.Screen
+        name="OldTenants"
+        component={OldTenantsScreen}
+        options={{ title: 'Old Tenants' }}
+      />
+      <Stack.Screen
+        name="Bookings"
+        component={BookingsScreen}
+        options={{ title: 'Bookings' }}
+      />
+      <Stack.Screen
+        name="Leads"
+        component={LeadsScreen}
+        options={{ title: 'Leads' }}
+      />
     </Stack.Navigator>
   );
 }
@@ -115,6 +142,21 @@ function PaymentsStack() {
         name="RecordPayment"
         component={RecordPaymentScreen}
         options={{ title: 'Record Payment' }}
+      />
+      <Stack.Screen
+        name="AgingReport"
+        component={AgingReportScreen}
+        options={{ title: 'Aging Report' }}
+      />
+      <Stack.Screen
+        name="Reconciliation"
+        component={ReconciliationScreen}
+        options={{ title: 'Reconciliation' }}
+      />
+      <Stack.Screen
+        name="Receipt"
+        component={ReceiptScreen}
+        options={{ title: 'Receipt' }}
       />
     </Stack.Navigator>
   );

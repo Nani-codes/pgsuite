@@ -3,7 +3,7 @@ import { env } from '../config/env.js';
 
 export interface TokenPayload {
   sub: string;
-  role: 'owner' | 'tenant';
+  role: 'owner' | 'tenant' | 'explorer';
 }
 
 export const generateToken = (payload: TokenPayload): string => {

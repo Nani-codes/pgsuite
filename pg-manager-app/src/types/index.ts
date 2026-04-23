@@ -1,7 +1,9 @@
+export type UserRole = 'owner' | 'tenant' | 'explorer';
+
 export interface User {
   id: string;
   name: string;
-  role: 'owner' | 'tenant';
+  role: UserRole;
 }
 
 export interface Property {
@@ -9,10 +11,46 @@ export interface Property {
   name: string;
   address: string;
   city: string;
+  state?: string;
+  pincode?: string;
+  availableFor?: string;
+  about?: string;
+  imageUrls?: string[];
+  isActive?: boolean;
   amenities: string[];
   _count?: { rooms: number };
   rooms?: Room[];
   floors?: Floor[];
+}
+
+export interface ShowcaseProperty {
+  id: string;
+  name: string;
+  city: string;
+  state?: string;
+  pincode?: string;
+  address: string;
+  availableFor?: string;
+  about?: string;
+  commonAmenitiesSummary?: string;
+  serviceAmenitiesSummary?: string;
+  foodAmenitiesSummary?: string;
+  imageUrls: string[];
+  distanceKm?: number;
+}
+
+export interface CreatePropertyPayload {
+  name: string;
+  address: string;
+  city: string;
+  state?: string;
+  pincode?: string;
+  availableFor?: string;
+  about?: string;
+  imageUrls?: string[];
+  amenities?: string[];
+  totalBeds?: number;
+  listPublicly?: boolean;
 }
 
 export interface Room {
@@ -63,22 +101,84 @@ export interface Lease {
   bed?: Bed & { room?: Pick<Room, 'roomNumber'> };
 }
 
+export interface InvoiceItem {
+  id: string;
+  type: 'rent' | 'late_fee' | 'utility' | 'maintenance' | 'other';
+  description: string;
+  amount: number;
+}
+
 export interface Invoice {
   id: string;
   invoiceNumber: string;
+  subtotal: number;
   total: number;
-  status: 'pending' | 'partially_paid' | 'paid' | 'overdue' | 'waived';
+  status: 'draft' | 'sent' | 'pending' | 'partially_paid' | 'paid' | 'overdue' | 'waived';
   periodStart: string;
   periodEnd: string;
   dueDate: string;
   tenant?: Pick<Tenant, 'name'>;
+  items?: InvoiceItem[];
   payments?: Payment[];
+}
+
+export interface Receipt {
+  id: string;
+  receiptNumber: string;
+  amount: number;
+  issuedAt: string;
+  payment?: Payment;
 }
 
 export interface Payment {
   id: string;
   amount: number;
   method: string;
+  status: 'pending' | 'success' | 'failed' | 'refunded';
+  referenceNo?: string;
+  collectedBy?: string;
+  paidAt?: string;
+  receipt?: Receipt;
+}
+
+export interface AgingBucket {
+  bucket: string;
+  count: number;
+  totalAmount: number;
+  invoices: {
+    id: string;
+    invoiceNumber: string;
+    tenantName: string;
+    total: number;
+    dueDate: string;
+    daysOverdue: number;
+  }[];
+}
+
+export interface ReconciliationReport {
+  summary: {
+    totalExpected: number;
+    totalCollected: number;
+    totalShortfall: number;
+  };
+  byMethod: Record<string, number>;
+  daily: {
+    date: string;
+    expected: number;
+    collected: number;
+    shortfall: number;
+    byMethod: Record<string, number>;
+  }[];
+}
+
+export interface LateFeePolicy {
+  id: string;
+  leaseId: string;
+  graceDays: number;
+  feeType: 'fixed' | 'percentage';
+  feeAmount: number;
+  maxFee?: number;
+  isActive: boolean;
 }
 
 export interface Complaint {
@@ -108,13 +208,76 @@ export interface TenantDocument {
 export interface DashboardData {
   totalProperties: number;
   todayCollection: number;
+  monthCollection: number;
   totalDues: number;
+  monthDues: number;
+  monthExpenses: number;
   openComplaints: number;
+  tenantsUnderNotice: number;
+  activeBookings: number;
+  newLeads: number;
   occupancy: {
     total: number;
     occupied: number;
     vacant: number;
+    reserved: number;
   };
+}
+
+export interface Booking {
+  id: string;
+  propertyId: string;
+  bedId?: string;
+  name: string;
+  phone: string;
+  email?: string;
+  expectedCheckIn: string;
+  rentAmount: number;
+  advanceAmount: number;
+  advancePaid: boolean;
+  status: 'pending' | 'confirmed' | 'cancelled' | 'converted';
+  notes?: string;
+  convertedTenantId?: string;
+  createdAt: string;
+  property?: Pick<Property, 'id' | 'name'>;
+  bed?: Bed & { room?: Pick<Room, 'roomNumber'> };
+}
+
+export interface Lead {
+  id: string;
+  propertyId?: string;
+  name: string;
+  phone: string;
+  email?: string;
+  source: 'walk_in' | 'online' | 'referral' | 'social_media' | 'other';
+  status: 'new_lead' | 'contacted' | 'interested' | 'visit_scheduled' | 'visit_done' | 'converted' | 'lost';
+  budget?: number;
+  preferredRoomType?: string;
+  followUpDate?: string;
+  notes?: string;
+  convertedBookingId?: string;
+  createdAt: string;
+  property?: Pick<Property, 'id' | 'name'>;
+}
+
+export interface DuesPackageItem {
+  id: string;
+  type: 'rent' | 'late_fee' | 'utility' | 'maintenance' | 'other';
+  description: string;
+  amount: number;
+}
+
+export interface DuesPackage {
+  id: string;
+  propertyId?: string;
+  name: string;
+  frequency: 'monthly' | 'quarterly' | 'half_yearly' | 'yearly';
+  totalAmount: number;
+  autoGenerate: boolean;
+  isActive: boolean;
+  items: DuesPackageItem[];
+  property?: Pick<Property, 'id' | 'name'>;
+  _count?: { leases: number };
 }
 
 export interface ApiResponse<T> {

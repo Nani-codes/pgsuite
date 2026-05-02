@@ -84,6 +84,7 @@ export interface Tenant {
   profilePhotoUrl?: string;
   status: 'active' | 'checked_out' | 'suspended';
   createdAt: string;
+  daysToNextInvoice?: number | null;
   leases?: Lease[];
   documents?: TenantDocument[];
 }
@@ -216,6 +217,7 @@ export interface DashboardData {
   tenantsUnderNotice: number;
   activeBookings: number;
   newLeads: number;
+  daysToNextInvoice: number | null;
   occupancy: {
     total: number;
     occupied: number;

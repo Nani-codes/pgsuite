@@ -5,6 +5,7 @@ import { authorize } from '../../middleware/authorize.js';
 import { validate } from '../../middleware/validate.js';
 import { createTenantSchema, updateTenantSchema } from './tenant.schema.js';
 import prisma from '../../config/db.js';
+import { getMinDaysToNextInvoice } from '../../utils/invoiceSchedule.js';
 
 const router = Router();
 const ctrl = new TenantController();
@@ -44,7 +45,16 @@ router.get('/me', async (req, res, next) => {
       return;
     }
 
-    res.json({ success: true, data: tenant });
+    const activeLeaseBillingDays = tenant.leases.map((lease) => lease.billingDay);
+    const daysToNextInvoice = getMinDaysToNextInvoice(activeLeaseBillingDays);
+
+    res.json({
+      success: true,
+      data: {
+        ...tenant,
+        daysToNextInvoice,
+      },
+    });
   } catch (err) { next(err); }
 });
 

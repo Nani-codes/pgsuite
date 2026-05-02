@@ -51,6 +51,12 @@ export function DashboardScreen({ navigation }: any) {
   const occupancyRate = occ.total
     ? Math.round((occ.occupied / occ.total) * 100)
     : 0;
+  const nextInvoiceLabel =
+    dashboard?.daysToNextInvoice == null
+      ? 'No active leases'
+      : dashboard.daysToNextInvoice === 0
+        ? 'Due today'
+        : `Due in ${dashboard.daysToNextInvoice} day(s)`;
 
   const recentLogs = [
     {
@@ -68,6 +74,19 @@ export function DashboardScreen({ navigation }: any) {
       title: 'Open Complaints',
       subtitle: `${dashboard?.openComplaints || 0} complaints need attention`,
       time: 'Active',
+    },
+    {
+      icon: 'calendar-outline' as const,
+      iconBg: colors.primary + '14',
+      iconColor: colors.primary,
+      title: 'Next Invoice',
+      subtitle:
+        dashboard?.daysToNextInvoice == null
+          ? 'No active leases'
+          : dashboard.daysToNextInvoice === 0
+            ? 'Due today'
+            : `Due in ${dashboard.daysToNextInvoice} day(s)`,
+      time: 'Billing',
     },
     {
       icon: 'business' as const,
@@ -96,6 +115,10 @@ export function DashboardScreen({ navigation }: any) {
             <Text style={styles.headerSubtitle}>
               Welcome back, monitoring your properties today.
             </Text>
+            <View style={styles.nextInvoicePill}>
+              <Ionicons name="calendar-outline" size={14} color={colors.primary} />
+              <Text style={styles.nextInvoicePillText}>Next invoice: {nextInvoiceLabel}</Text>
+            </View>
           </View>
           <TouchableOpacity onPress={logout} style={styles.avatarBtn}>
             <Ionicons name="log-out-outline" size={20} color={colors.primary} />
@@ -403,6 +426,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
     lineHeight: 20,
+  },
+  nextInvoicePill: {
+    marginTop: 10,
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.primary + '14',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  nextInvoicePillText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.primary,
   },
   avatarBtn: {
     width: 42,

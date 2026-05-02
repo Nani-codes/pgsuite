@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { authenticate } from '../../middleware/authenticate.js';
 import { authorize } from '../../middleware/authorize.js';
 import prisma from '../../config/db.js';
+import { getMinDaysToNextInvoice } from '../../utils/invoiceSchedule.js';
 
 const router = Router();
 
@@ -33,6 +34,7 @@ router.get('/dashboard', async (req, res, next) => {
       tenantsUnderNotice,
       activeBookings,
       newLeads,
+      activeLeases,
     ] = await Promise.all([
       prisma.property.count({ where: { ownerId, deletedAt: null } }),
       prisma.bed.groupBy({
@@ -112,6 +114,13 @@ router.get('/dashboard', async (req, res, next) => {
           createdAt: { gte: monthStart, lt: monthEnd },
         },
       }),
+      prisma.lease.findMany({
+        where: {
+          status: 'active',
+          property: { ownerId },
+        },
+        select: { billingDay: true },
+      }),
     ]);
 
     const occupancy = { total: 0, vacant: 0, occupied: 0, reserved: 0 } as Record<string, number>;
@@ -119,6 +128,8 @@ router.get('/dashboard', async (req, res, next) => {
       occupancy[b.status] = b._count;
       occupancy.total += b._count;
     }
+
+    const daysToNextInvoice = getMinDaysToNextInvoice(activeLeases.map((lease) => lease.billingDay));
 
     res.json({
       success: true,
@@ -134,6 +145,7 @@ router.get('/dashboard', async (req, res, next) => {
         tenantsUnderNotice,
         activeBookings,
         newLeads,
+        daysToNextInvoice,
       },
     });
   } catch (err) { next(err); }

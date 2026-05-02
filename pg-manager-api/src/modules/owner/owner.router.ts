@@ -3,6 +3,7 @@ import { authenticate } from '../../middleware/authenticate.js';
 import { authorize } from '../../middleware/authorize.js';
 import prisma from '../../config/db.js';
 import { z } from 'zod/v4';
+import { getMinDaysToNextInvoice } from '../../utils/invoiceSchedule.js';
 
 const router = Router();
 
@@ -19,8 +20,10 @@ const updateOwnerSchema = z.object({
  */
 router.get('/me', async (req, res, next) => {
   try {
+    const ownerId = req.user!.sub;
+
     const owner = await prisma.owner.findUnique({
-      where: { id: req.user!.sub },
+      where: { id: ownerId },
       include: {
         _count: { select: { properties: true, tenants: true } },
       },
@@ -34,7 +37,22 @@ router.get('/me', async (req, res, next) => {
       return;
     }
 
-    res.json({ success: true, data: owner });
+    const activeLeases = await prisma.lease.findMany({
+      where: {
+        status: 'active',
+        property: { ownerId },
+      },
+      select: { billingDay: true },
+    });
+    const daysToNextInvoice = getMinDaysToNextInvoice(activeLeases.map((lease) => lease.billingDay));
+
+    res.json({
+      success: true,
+      data: {
+        ...owner,
+        daysToNextInvoice,
+      },
+    });
   } catch (err) { next(err); }
 });
 

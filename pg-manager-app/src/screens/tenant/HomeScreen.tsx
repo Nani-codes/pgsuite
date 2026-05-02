@@ -18,6 +18,7 @@ import type { Invoice } from '../../types';
 export function HomeScreen({ navigation }: any) {
   const { user, logout } = useAuth();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [daysToNextInvoice, setDaysToNextInvoice] = useState<number | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,8 +26,12 @@ export function HomeScreen({ navigation }: any) {
     if (!user) return;
     setError(null);
     try {
-      const res = await api.billing.listInvoices(user.id, 'tenant');
-      setInvoices(res.data);
+      const [invoicesRes, tenantRes] = await Promise.all([
+        api.billing.listInvoices(user.id, 'tenant'),
+        api.tenants.getProfile(user.id),
+      ]);
+      setInvoices(invoicesRes.data);
+      setDaysToNextInvoice(tenantRes.data.daysToNextInvoice ?? null);
     } catch {
       // Tenant may not have invoices yet
     }
@@ -76,6 +81,21 @@ export function HomeScreen({ navigation }: any) {
                 ? `You have ${pendingInvoices.length} pending invoice${pendingInvoices.length > 1 ? 's' : ''}`
                 : "You're all caught up!"}
             </Text>
+            <View style={styles.nextInvoiceBanner}>
+              <View style={styles.nextInvoiceIconWrap}>
+                <Ionicons name="calendar-outline" size={16} color={colors.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.nextInvoiceLabel}>Next invoice</Text>
+                <Text style={styles.nextInvoiceBannerText}>
+                  {daysToNextInvoice == null
+                    ? 'No active lease'
+                    : daysToNextInvoice === 0
+                      ? 'Next invoice: today'
+                      : `Next invoice in ${daysToNextInvoice} day(s)`}
+                </Text>
+              </View>
+            </View>
           </View>
           <TouchableOpacity onPress={logout} style={styles.logoutBtn}>
             <Ionicons
@@ -270,6 +290,39 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontSize: 13,
     color: 'rgba(255,255,255,0.85)',
+  },
+  nextInvoiceBanner: {
+    marginTop: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: colors.white,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.35)',
+  },
+  nextInvoiceIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  nextInvoiceLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.textLight,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  nextInvoiceBannerText: {
+    marginTop: 2,
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.text,
   },
   logoutBtn: {
     width: 40,
